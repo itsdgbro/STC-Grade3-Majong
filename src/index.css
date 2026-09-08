@@ -1,0 +1,108 @@
+/* Base styling for full-screen letterboxed 16:9 viewport */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000000; /* Strict solid black bars for non-16:9 aspect ratios */
+  overflow: hidden;
+  font-family: 'Fredoka', 'Outfit', sans-serif;
+  color: #1e293b;
+  touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #000000;
+  overflow: hidden;
+}
+
+/* 1920x1080 Game Viewport Container */
+.game-viewport {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  min-width: 1920px;
+  min-height: 1080px;
+  background: radial-gradient(circle at 50% 20%, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%);
+  overflow: hidden;
+  transform-origin: center center;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+  will-change: transform;
+}
+
+/* Animations */
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(1deg); }
+}
+
+@keyframes cloudDrift1 {
+  0% { transform: translateX(-200px); }
+  100% { transform: translateX(2100px); }
+}
+
+@keyframes cloudDrift2 {
+  0% { transform: translateX(-350px); }
+  100% { transform: translateX(2100px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.6), 0 8px 20px rgba(0,0,0,0.15); }
+  50% { box-shadow: 0 0 30px rgba(250, 204, 21, 0.95), 0 12px 28px rgba(250, 204, 21, 0.4); }
+}
+
+@keyframes wobbleError {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-8px, 0) rotate(-4deg); }
+  40% { transform: translate(8px, 0) rotate(4deg); }
+  60% { transform: translate(-6px, 0) rotate(-2deg); }
+  80% { transform: translate(6px, 0) rotate(2deg); }
+}
+
+@keyframes matchSuccess {
+  0% { transform: scale(1); opacity: 1; filter: brightness(1); }
+  50% { transform: scale(1.25) translateY(-20px); opacity: 0.9; filter: brightness(1.4); }
+  100% { transform: scale(0.1) translateY(-60px); opacity: 0; }
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounceSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* Button & UI utilities with touch improvements */
+button {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+button:active {
+  transform: scale(0.94);
+}

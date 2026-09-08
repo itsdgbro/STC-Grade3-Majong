@@ -1,0 +1,169 @@
+import React from 'react';
+
+/**
+ * Renders a rich cartoon mountain landscape of Nepal with rolling green hills,
+ * snowy Himalayan peaks, prayer flags, rhododendron flowers, drifting clouds, and sun rays,
+ * complete with a classic green felt Mahjong playing table mat.
+ */
+export const HimalayanBackground = ({ themeGradient }) => {
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+      {/* Sky & Theme Gradient */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: themeGradient || 'linear-gradient(180deg, #38bdf8 0%, #0284c7 60%, #0369a1 100%)',
+          transition: 'background 0.8s ease'
+        }}
+      />
+
+      {/* Sun Glow & Orb */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-80px',
+          right: '240px',
+          width: '320px',
+          height: '320px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(254, 240, 138, 0.9) 0%, rgba(253, 224, 71, 0.4) 40%, rgba(250, 204, 21, 0) 70%)',
+          filter: 'blur(20px)'
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: '30px',
+          right: '340px',
+          width: '100px',
+          height: '100px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, #fffbeb 20%, #fde047 70%, #eab308 100%)',
+          boxShadow: '0 0 45px #facc15'
+        }}
+      />
+
+      {/* Drifting Clouds */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '55px',
+          left: 0,
+          animation: 'cloudDrift1 45s linear infinite',
+          opacity: 0.85
+        }}
+      >
+        <svg width="220" height="90" viewBox="0 0 200 80" fill="#ffffff">
+          <ellipse cx="60" cy="50" rx="45" ry="25" />
+          <ellipse cx="110" cy="40" rx="55" ry="32" />
+          <ellipse cx="160" cy="50" rx="35" ry="20" />
+        </svg>
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          top: '120px',
+          left: 0,
+          animation: 'cloudDrift2 65s linear infinite',
+          opacity: 0.7
+        }}
+      >
+        <svg width="300" height="110" viewBox="0 0 240 90" fill="#ffffff">
+          <ellipse cx="70" cy="60" rx="55" ry="30" />
+          <ellipse cx="130" cy="45" rx="65" ry="40" />
+          <ellipse cx="190" cy="60" rx="45" ry="25" />
+        </svg>
+      </div>
+
+      {/* Distant Snow Mountains (Himalayas) */}
+      <svg
+        viewBox="0 0 1920 600"
+        style={{
+          position: 'absolute',
+          bottom: '240px',
+          left: 0,
+          width: '100%',
+          height: '420px',
+          opacity: 0.95
+        }}
+      >
+        <polygon points="100,500 450,120 750,500" fill="#cbd5e1" />
+        <polygon points="450,120 400,200 450,220 480,180" fill="#f8fafc" />
+        <polygon points="450,120 480,180 520,230 450,220" fill="#e2e8f0" />
+
+        <polygon points="600,550 960,60 1350,550" fill="#94a3b8" />
+        <polygon points="960,60 880,180 940,210 960,190" fill="#ffffff" />
+        <polygon points="960,60 960,190 1020,210 1050,160" fill="#e2e8f0" />
+
+        <polygon points="1200,500 1520,140 1850,500" fill="#cbd5e1" />
+        <polygon points="1520,140 1460,230 1520,250 1560,200" fill="#ffffff" />
+        <polygon points="1520,140 1560,200 1600,240 1520,250" fill="#e2e8f0" />
+      </svg>
+
+      {/* Prayer Flags (Nepal Dhoja) */}
+      <svg
+        viewBox="0 0 1920 120"
+        style={{
+          position: 'absolute',
+          top: '0',
+          left: 0,
+          width: '100%',
+          height: '90px',
+          opacity: 0.85
+        }}
+      >
+        <path d="M 0,20 Q 480,65 960,20 Q 1440,65 1920,20" fill="none" stroke="#64748b" strokeWidth="2" strokeDasharray="4 2" />
+        {[
+          { x: 120, y: 32, fill: '#2563eb' },
+          { x: 200, y: 38, fill: '#f8fafc' },
+          { x: 280, y: 44, fill: '#dc2626' },
+          { x: 360, y: 46, fill: '#16a34a' },
+          { x: 440, y: 44, fill: '#eab308' },
+          { x: 520, y: 38, fill: '#2563eb' },
+          { x: 600, y: 32, fill: '#f8fafc' },
+          { x: 680, y: 26, fill: '#dc2626' },
+          { x: 760, y: 24, fill: '#16a34a' },
+          { x: 840, y: 23, fill: '#eab308' },
+          { x: 920, y: 22, fill: '#2563eb' },
+          { x: 1000, y: 23, fill: '#f8fafc' },
+          { x: 1080, y: 26, fill: '#dc2626' },
+          { x: 1160, y: 32, fill: '#16a34a' },
+          { x: 1240, y: 38, fill: '#eab308' },
+          { x: 1320, y: 44, fill: '#2563eb' },
+          { x: 1400, y: 46, fill: '#f8fafc' },
+          { x: 1480, y: 44, fill: '#dc2626' },
+          { x: 1560, y: 38, fill: '#16a34a' },
+          { x: 1640, y: 32, fill: '#eab308' },
+          { x: 1720, y: 26, fill: '#2563eb' },
+          { x: 1800, y: 22, fill: '#f8fafc' }
+        ].map((flag, i) => (
+          <polygon
+            key={i}
+            points={`${flag.x},${flag.y} ${flag.x + 38},${flag.y + 2} ${flag.x + 34},${flag.y + 44} ${flag.x - 4},${flag.y + 42}`}
+            fill={flag.fill}
+            stroke="rgba(0,0,0,0.15)"
+            strokeWidth="1"
+          />
+        ))}
+      </svg>
+
+      {/* Midground Lush Green Hills */}
+      <svg
+        viewBox="0 0 1920 400"
+        style={{
+          position: 'absolute',
+          bottom: '0px',
+          left: 0,
+          width: '100%',
+          height: '380px'
+        }}
+      >
+        <path d="M 0,260 Q 400,60 800,180 T 1600,120 Q 1800,150 1920,200 L 1920,400 L 0,400 Z" fill="#22c55e" opacity="0.45" />
+        <path d="M 0,310 Q 300,130 700,250 T 1500,170 Q 1750,190 1920,270 L 1920,400 L 0,400 Z" fill="#16a34a" opacity="0.8" />
+        <path d="M 0,360 Q 450,220 950,310 T 1700,240 Q 1820,260 1920,330 L 1920,400 L 0,400 Z" fill="#15803d" />
+      </svg>
+    </div>
+  );
+};
