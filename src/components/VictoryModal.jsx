@@ -10,6 +10,8 @@ export const VictoryModal = ({
   levelTitle,
   onNextLevel,
   onReplay,
+  onLevelMap,
+  onHome,
   hasNextLevel
 }) => {
   const [confetti, setConfetti] = useState([]);

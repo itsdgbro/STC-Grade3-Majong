@@ -8,8 +8,7 @@ import { audio } from '../utils/audio';
  */
 export const LevelSelect = ({
   levelProgress = {},
-  onSelectLevel,
-  onBackToMenu
+  onSelectLevel
 }) => {
   return (
     <div
@@ -25,42 +24,19 @@ export const LevelSelect = ({
         boxSizing: 'border-box'
       }}
     >
-      {/* Top Header Row with Centered Title & Home Button on Left */}
+      {/* Top Header Row with Centered Title */}
       <div
         style={{
           width: '100%',
           maxWidth: '1700px',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
-          marginBottom: '36px'
+          marginBottom: '36px',
+          textAlign: 'center'
         }}
       >
-        <button
-          onClick={() => {
-            audio.playSelect();
-            onBackToMenu();
-          }}
-          style={{
-            background: '#ffffff',
-            color: '#1e293b',
-            padding: '16px 32px',
-            borderRadius: '26px',
-            fontSize: '26px',
-            fontWeight: '900',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            border: '3.5px solid #e2e8f0',
-            cursor: 'pointer'
-          }}
-        >
-          <span>🏠</span>
-          <span>Main Menu</span>
-        </button>
-
-        <div style={{ textAlign: 'center', flex: 1 }}>
+        <div>
           <h1
             style={{
               fontSize: '56px',
@@ -86,9 +62,6 @@ export const LevelSelect = ({
             खेलको स्तर रोज्नुहोस् (Grade 3 English)
           </div>
         </div>
-
-        {/* Placeholder to keep title strictly centered */}
-        <div style={{ width: '220px' }} />
       </div>
 
       {/* 5 Centered Level Cards */}

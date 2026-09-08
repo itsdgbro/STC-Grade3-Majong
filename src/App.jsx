@@ -4,6 +4,9 @@ import { HimalayanBackground } from './components/HimalayanBackground';
 import { MainMenu } from './components/MainMenu';
 import { LevelSelect } from './components/LevelSelect';
 import { HowToPlayModal } from './components/HowToPlayModal';
+import { SettingsModal } from './components/SettingsModal';
+import { PauseModal } from './components/PauseModal';
+import { GlobalTopBar } from './components/GlobalTopBar';
 import { Tile } from './components/Tile';
 import { Mascot } from './components/Mascot';
 import { VictoryModal } from './components/VictoryModal';
@@ -20,6 +23,8 @@ export default function App() {
   // Navigation Scene State: 'MENU' | 'LEVEL_SELECT' | 'GAME'
   const [scene, setScene] = useState('MENU');
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showPause, setShowPause] = useState(false);
   
   // Persistent level stars & progress
   const [levelProgress, setLevelProgress] = useState(() => {
@@ -46,8 +51,14 @@ export default function App() {
   const [isVictory, setIsVictory] = useState(false);
   const [timer, setTimer] = useState(0);
   const [isGameActive, setIsGameActive] = useState(false);
-  const [speechEnabled, setSpeechEnabled] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  
+  // Audio state
+  const [sfxVolume, setSfxVolume] = useState(0.8);
+  const [sfxMuted, setSfxMuted] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.5);
+  const [musicMuted, setMusicMuted] = useState(false);
+  const [speechVolume, setSpeechVolume] = useState(0.7);
+  const [speechMuted, setSpeechMuted] = useState(false);
 
   // Save progress to localStorage
   useEffect(() => {
@@ -102,19 +113,21 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    startLevel(currentLevelIndex);
-  }, [currentLevelIndex, startLevel]);
+    if (scene === 'GAME') {
+      startLevel(currentLevelIndex);
+    }
+  }, [currentLevelIndex, startLevel, scene]);
 
   // Timer interval
   useEffect(() => {
     let interval = null;
-    if (isGameActive && !isVictory) {
+    if (isGameActive && !isVictory && !showPause && scene === 'GAME') {
       interval = setInterval(() => {
         setTimer((prev) => prev + 1);
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isGameActive, isVictory]);
+  }, [isGameActive, isVictory, showPause, scene]);
 
   // Handle Tile Selection
   const handleTileClick = (tile) => {
@@ -126,9 +139,7 @@ export default function App() {
     }
 
     // Pronounce English word
-    if (speechEnabled) {
-      audio.speakWord(tile.word);
-    }
+    audio.speakWord(tile.word);
 
     // First tile selection
     if (!selectedTileId) {
@@ -153,7 +164,6 @@ export default function App() {
 
     // Check English matching pair
     if (firstTile.pairId === tile.pairId) {
-      // Record previous free set to identify newly uncovered/freed tiles
       const previousFree = new Set(freeTileIds);
 
       // Valid Match
@@ -189,7 +199,6 @@ export default function App() {
         setMascotMood('celebrating');
         setMascotTip('🎉 Outstanding work! You completed the entire Mahjong board!');
 
-        // Calculate stars based on accuracy and time
         const earnedStars = timer < 60 ? 3 : timer < 120 ? 2 : 1;
         const currentLvlId = level.id;
         const nextLvlId = LEVELS[currentLevelIndex + 1]?.id;
@@ -238,9 +247,7 @@ export default function App() {
       setHintedPairIds([tileA.id, tileB.id]);
       setHintsRemaining((prev) => prev - 1);
       setMascotTip(`💡 Hint: "${tileA.word}" ↔ "${tileB.word}" (${tileA.relation}) are free to match!`);
-      if (speechEnabled) {
-        audio.speakWord(`${tileA.word} and ${tileB.word}`);
-      }
+      audio.speakWord(`${tileA.word} and ${tileB.word}`);
     } else {
       setMascotTip("No direct moves left on the open sides. Click 'Smart Reorder' to continue!");
     }
@@ -305,7 +312,7 @@ export default function App() {
     setMascotTip("✨ Solvable rearrangement complete! New free pairs are now open!");
   };
 
-  // Board layout bounds - Exact tight bounding box (tileWidth: 184, tileHeight: 230, unitX: 86, unitY: 106)
+  // Board layout bounds
   const minX = Math.min(...level.layout.map((s) => s.x));
   const maxX = Math.max(...level.layout.map((s) => s.x));
   const minY = Math.min(...level.layout.map((s) => s.y));
@@ -324,24 +331,57 @@ export default function App() {
 
       {/* Main Menu Scene */}
       {scene === 'MENU' && (
-        <MainMenu
-          onPlay={() => {
-            setScene('LEVEL_SELECT');
-          }}
-        />
+        <>
+          {/* Top Left Toolbar: 1 Button (Settings) as per project-rules */}
+          <GlobalTopBar
+            buttons={[
+              {
+                id: 'settings',
+                icon: '⚙️',
+                title: 'Settings',
+                onClick: () => setShowSettings(true)
+              }
+            ]}
+          />
+
+          <MainMenu
+            onPlay={() => {
+              setScene('LEVEL_SELECT');
+            }}
+          />
+        </>
       )}
 
       {/* Level Selection Scene */}
       {scene === 'LEVEL_SELECT' && (
-        <LevelSelect
-          levelProgress={levelProgress}
-          onSelectLevel={(levelIdx) => {
-            setCurrentLevelIndex(levelIdx);
-            startLevel(levelIdx);
-            setScene('GAME');
-          }}
-          onBackToMenu={() => setScene('MENU')}
-        />
+        <>
+          {/* Top Left Toolbar: 2 Buttons (Back & Settings) as per project-rules */}
+          <GlobalTopBar
+            buttons={[
+              {
+                id: 'back',
+                icon: '⬅️',
+                title: 'Back to Main Menu',
+                onClick: () => setScene('MENU')
+              },
+              {
+                id: 'settings',
+                icon: '⚙️',
+                title: 'Settings',
+                onClick: () => setShowSettings(true)
+              }
+            ]}
+          />
+
+          <LevelSelect
+            levelProgress={levelProgress}
+            onSelectLevel={(levelIdx) => {
+              setCurrentLevelIndex(levelIdx);
+              startLevel(levelIdx);
+              setScene('GAME');
+            }}
+          />
+        </>
       )}
 
       {/* How To Play Tutorial Modal */}
@@ -349,10 +389,62 @@ export default function App() {
         <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
       )}
 
+      {/* Settings Modal with [Clickable Circular Icon] + Sliders */}
+      {showSettings && (
+        <SettingsModal
+          onClose={() => setShowSettings(false)}
+          sfxVolume={sfxVolume}
+          setSfxVolume={setSfxVolume}
+          sfxMuted={sfxMuted}
+          setSfxMuted={setSfxMuted}
+          musicVolume={musicVolume}
+          setMusicVolume={setMusicVolume}
+          musicMuted={musicMuted}
+          setMusicMuted={setMusicMuted}
+          speechVolume={speechVolume}
+          setSpeechVolume={setSpeechVolume}
+          speechMuted={speechMuted}
+          setSpeechMuted={setSpeechMuted}
+        />
+      )}
+
       {/* Active Game Scene */}
       {scene === 'GAME' && (
         <>
-          {/* Top Header Bar - Prominent, Large, and Clearly Legible */}
+          {/* Top Left Toolbar: Standard 2-Button Mapping (Slot 0: Pause, Slot 1: Settings) as per project-rules */}
+          <GlobalTopBar
+            buttons={[
+              {
+                id: 'pause',
+                icon: '⏸️',
+                title: 'Pause Game',
+                onClick: () => setShowPause(true)
+              },
+              {
+                id: 'settings',
+                icon: '⚙️',
+                title: 'Settings',
+                onClick: () => setShowSettings(true)
+              }
+            ]}
+          />
+
+          {/* Pause Modal */}
+          {showPause && (
+            <PauseModal
+              onResume={() => setShowPause(false)}
+              onRestart={() => {
+                setShowPause(false);
+                startLevel(currentLevelIndex);
+              }}
+              onQuit={() => {
+                setShowPause(false);
+                setScene('LEVEL_SELECT');
+              }}
+            />
+          )}
+
+          {/* Top Header Bar */}
           <div
             style={{
               position: 'absolute',
@@ -360,50 +452,17 @@ export default function App() {
               left: 0,
               width: '100%',
               height: '136px',
-              padding: '16px 44px',
+              padding: '16px 44px 16px 250px', // Extra left padding for top toolbar
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               zIndex: 80,
-              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 75%, rgba(0,0,0,0) 100%)'
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 75%, rgba(0,0,0,0) 100%)',
+              boxSizing: 'border-box'
             }}
           >
-            {/* Left: Home / Level selector and prominent title */}
+            {/* Left-Center: Level info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <button
-                onClick={() => setScene('MENU')}
-                title="Go to Main Menu"
-                style={{
-                  background: '#ffffff',
-                  color: '#1e293b',
-                  padding: '14px 20px',
-                  borderRadius: '20px',
-                  fontSize: '24px',
-                  fontWeight: '900',
-                  boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
-                  cursor: 'pointer'
-                }}
-              >
-                🏠
-              </button>
-
-              <button
-                onClick={() => setScene('LEVEL_SELECT')}
-                title="Choose Levels"
-                style={{
-                  background: '#ffffff',
-                  color: '#1e293b',
-                  padding: '14px 20px',
-                  borderRadius: '20px',
-                  fontSize: '24px',
-                  fontWeight: '900',
-                  boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
-                  cursor: 'pointer'
-                }}
-              >
-                🗺️
-              </button>
-
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   onClick={() => setCurrentLevelIndex((prev) => Math.max(0, prev - 1))}
@@ -458,7 +517,7 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: '6px' }}>
                 <h1
                   style={{
-                    fontSize: '36px',
+                    fontSize: '34px',
                     fontWeight: '900',
                     color: '#ffffff',
                     textShadow: '0 4px 10px rgba(0,0,0,0.85)',
@@ -506,7 +565,7 @@ export default function App() {
               </span>
             </div>
 
-            {/* Right: Essential HUD & Controls */}
+            {/* Right: Essential HUD */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div
                 style={{
@@ -552,44 +611,6 @@ export default function App() {
                 <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>TIME</div>
                 <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669' }}>{timer}s</div>
               </div>
-
-              <button
-                onClick={() => {
-                  const next = !soundEnabled;
-                  setSoundEnabled(next);
-                  audio.soundEnabled = next;
-                }}
-                style={{
-                  background: soundEnabled ? '#22c55e' : '#94a3b8',
-                  color: '#ffffff',
-                  padding: '12px 16px',
-                  borderRadius: '20px',
-                  fontSize: '24px',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-                }}
-                title="Toggle Sound"
-              >
-                {soundEnabled ? '🔔' : '🔕'}
-              </button>
-
-              <button
-                onClick={() => {
-                  const next = !speechEnabled;
-                  setSpeechEnabled(next);
-                  audio.speechEnabled = next;
-                }}
-                style={{
-                  background: speechEnabled ? '#3b82f6' : '#94a3b8',
-                  color: '#ffffff',
-                  padding: '12px 16px',
-                  borderRadius: '20px',
-                  fontSize: '24px',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-                }}
-                title="Toggle Voice Speech"
-              >
-                {speechEnabled ? '🗣️' : '🤐'}
-              </button>
             </div>
           </div>
 
@@ -776,7 +797,7 @@ export default function App() {
             tip={mascotTip}
             mood={mascotMood}
             onClick={() => {
-              if (speechEnabled && mascotTip) {
+              if (mascotTip) {
                 audio.speakWord(mascotTip);
               }
             }}
