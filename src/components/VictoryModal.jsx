@@ -151,20 +151,41 @@ export const VictoryModal = ({
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '26px', marginTop: '38px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '38px', flexWrap: 'wrap' }}>
+          <button
+            onClick={onLevelMap}
+            style={{
+              background: '#0284c7',
+              color: '#ffffff',
+              padding: '18px 36px',
+              borderRadius: '24px',
+              fontSize: '24px',
+              fontWeight: '900',
+              boxShadow: '0 6px 18px rgba(2, 132, 199, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}
+          >
+            🗺️ Levels
+          </button>
+
           <button
             onClick={onReplay}
             style={{
               background: '#e2e8f0',
               color: '#1e293b',
-              padding: '20px 42px',
+              padding: '18px 36px',
               borderRadius: '24px',
-              fontSize: '26px',
+              fontSize: '24px',
               fontWeight: '900',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)'
+              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
             }}
           >
-            🔄 Play Again
+            🔄 Replay
           </button>
 
           {hasNextLevel && (
@@ -173,12 +194,15 @@ export const VictoryModal = ({
               style={{
                 background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                 color: '#ffffff',
-                padding: '20px 52px',
+                padding: '18px 46px',
                 borderRadius: '24px',
-                fontSize: '28px',
+                fontSize: '26px',
                 fontWeight: '900',
                 boxShadow: '0 8px 28px rgba(34, 197, 94, 0.45)',
-                border: '3.5px solid #bbf7d0'
+                border: '3.5px solid #bbf7d0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
               }}
             >
               Next Level ➡️

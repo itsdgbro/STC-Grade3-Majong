@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AspectRatioContainer } from './components/AspectRatioContainer';
 import { HimalayanBackground } from './components/HimalayanBackground';
+import { MainMenu } from './components/MainMenu';
+import { LevelSelect } from './components/LevelSelect';
+import { HowToPlayModal } from './components/HowToPlayModal';
 import { Tile } from './components/Tile';
 import { Mascot } from './components/Mascot';
 import { VictoryModal } from './components/VictoryModal';
@@ -14,6 +17,20 @@ import {
 import { audio } from './utils/audio';
 
 export default function App() {
+  // Navigation Scene State: 'MENU' | 'LEVEL_SELECT' | 'GAME'
+  const [scene, setScene] = useState('MENU');
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+  
+  // Persistent level stars & progress
+  const [levelProgress, setLevelProgress] = useState(() => {
+    try {
+      const saved = localStorage.getItem('stc_mahjong_progress');
+      return saved ? JSON.parse(saved) : { 1: { stars: 0, highScore: 0, completed: false } };
+    } catch (e) {
+      return { 1: { stars: 0, highScore: 0, completed: false } };
+    }
+  });
+
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [tiles, setTiles] = useState([]);
   const [selectedTileId, setSelectedTileId] = useState(null);
@@ -28,9 +45,18 @@ export default function App() {
   const [mascotMood, setMascotMood] = useState('happy');
   const [isVictory, setIsVictory] = useState(false);
   const [timer, setTimer] = useState(0);
-  const [isGameActive, setIsGameActive] = useState(true);
+  const [isGameActive, setIsGameActive] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Save progress to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('stc_mahjong_progress', JSON.stringify(levelProgress));
+    } catch (e) {
+      console.warn('Could not save progress', e);
+    }
+  }, [levelProgress]);
 
   const level = LEVELS[currentLevelIndex];
 
@@ -162,6 +188,27 @@ export default function App() {
         audio.playFanfare();
         setMascotMood('celebrating');
         setMascotTip('🎉 Outstanding work! You completed the entire Mahjong board!');
+
+        // Calculate stars based on accuracy and time
+        const earnedStars = timer < 60 ? 3 : timer < 120 ? 2 : 1;
+        const currentLvlId = level.id;
+        const nextLvlId = LEVELS[currentLevelIndex + 1]?.id;
+
+        setLevelProgress((prev) => {
+          const prevLvl = prev[currentLvlId] || { stars: 0, highScore: 0, completed: false };
+          const updated = {
+            ...prev,
+            [currentLvlId]: {
+              stars: Math.max(prevLvl.stars, earnedStars),
+              highScore: Math.max(prevLvl.highScore, score + 100),
+              completed: true
+            }
+          };
+          if (nextLvlId && !updated[nextLvlId]) {
+            updated[nextLvlId] = { stars: 0, highScore: 0, completed: false };
+          }
+          return updated;
+        });
       }
     } else {
       // Mismatch
@@ -275,427 +322,535 @@ export default function App() {
       {/* Cartoon Himalayan Background */}
       <HimalayanBackground themeGradient={level.bgGradient} />
 
-      {/* Top Header Bar - Prominent, Large, and Clearly Legible */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '136px',
-          padding: '16px 44px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          zIndex: 30,
-          background: 'linear-gradient(180deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.45) 75%, rgba(0,0,0,0) 100%)'
-        }}
-      >
-        {/* Left: Level selector and prominent title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>
-          <button
-            onClick={() => setCurrentLevelIndex((prev) => Math.max(0, prev - 1))}
-            disabled={currentLevelIndex === 0}
-            style={{
-              background: currentLevelIndex === 0 ? 'rgba(255,255,255,0.3)' : '#ffffff',
-              color: '#1e293b',
-              padding: '14px 28px',
-              borderRadius: '24px',
-              fontSize: '26px',
-              fontWeight: '900',
-              boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
-              cursor: currentLevelIndex === 0 ? 'not-allowed' : 'pointer'
-            }}
-          >
-            ⬅️ {currentLevelIndex + 1}/{LEVELS.length}
-          </button>
-
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <h1
-              style={{
-                fontSize: '38px',
-                fontWeight: '900',
-                color: '#ffffff',
-                textShadow: '0 4px 10px rgba(0,0,0,0.85)',
-                margin: 0,
-                padding: '2px 0',
-                lineHeight: 1.25,
-                letterSpacing: '-0.3px',
-                fontFamily: "'Fredoka', sans-serif"
-              }}
-            >
-              {level.title}
-            </h1>
-            <div
-              style={{
-                fontSize: '22px',
-                fontWeight: '800',
-                color: '#fef08a',
-                textShadow: '0 2px 6px rgba(0,0,0,0.8)',
-                marginTop: '2px',
-                lineHeight: 1.2
-              }}
-            >
-              Grade 3 • {level.subtitle}
-            </div>
-          </div>
-        </div>
-
-        {/* Center: Objective Banner with large readable instruction */}
-        <div
-          style={{
-            background: 'rgba(255, 255, 255, 0.98)',
-            padding: '12px 34px',
-            borderRadius: '50px',
-            border: '4px solid #facc15',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            maxWidth: '680px'
+      {/* Main Menu Scene */}
+      {scene === 'MENU' && (
+        <MainMenu
+          onPlay={() => {
+            setScene('LEVEL_SELECT');
           }}
-        >
-          <span style={{ fontSize: '32px' }}>🎯</span>
-          <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
-            {level.description}
-          </span>
-        </div>
-
-        {/* Right: Essential HUD & Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div
-            style={{
-              background: availableFreePairs.length > 0 ? '#ecfdf5' : '#fef2f2',
-              border: `3px solid ${availableFreePairs.length > 0 ? '#10b981' : '#ef4444'}`,
-              padding: '8px 22px',
-              borderRadius: '20px',
-              textAlign: 'center',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-            }}
-            title="Playable open pairs right now"
-          >
-            <div style={{ fontSize: '13px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#047857' : '#b91c1c', letterSpacing: '0.8px' }}>
-              OPEN PAIRS
-            </div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626' }}>
-              {availableFreePairs.length}
-            </div>
-          </div>
-
-          <div
-            style={{
-              background: 'rgba(255, 255, 255, 0.96)',
-              padding: '8px 22px',
-              borderRadius: '20px',
-              textAlign: 'center',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-            }}
-          >
-            <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>SCORE</div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color: '#0284c7' }}>{score}</div>
-          </div>
-
-          <div
-            style={{
-              background: 'rgba(255, 255, 255, 0.96)',
-              padding: '8px 22px',
-              borderRadius: '20px',
-              textAlign: 'center',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-            }}
-          >
-            <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>TIME</div>
-            <div style={{ fontSize: '28px', fontWeight: '900', color: '#059669' }}>{timer}s</div>
-          </div>
-
-          <button
-            onClick={() => {
-              const next = !soundEnabled;
-              setSoundEnabled(next);
-              audio.soundEnabled = next;
-            }}
-            style={{
-              background: soundEnabled ? '#22c55e' : '#94a3b8',
-              color: '#ffffff',
-              padding: '12px 18px',
-              borderRadius: '20px',
-              fontSize: '26px',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-            }}
-            title="Toggle Sound"
-          >
-            {soundEnabled ? '🔔' : '🔕'}
-          </button>
-
-          <button
-            onClick={() => {
-              const next = !speechEnabled;
-              setSpeechEnabled(next);
-              audio.speechEnabled = next;
-            }}
-            style={{
-              background: speechEnabled ? '#3b82f6' : '#94a3b8',
-              color: '#ffffff',
-              padding: '12px 18px',
-              borderRadius: '20px',
-              fontSize: '26px',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
-            }}
-            title="Toggle Voice Speech"
-          >
-            {speechEnabled ? '🗣️' : '🤐'}
-          </button>
-        </div>
-      </div>
-
-      {/* Main Playing Board - Strictly Centered as a Single Cohesive Giant Unit */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '140px',
-          bottom: '70px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '1800px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 10
-        }}
-      >
-        <div
-          style={{
-            position: 'relative',
-            width: `${boardWidth}px`,
-            height: `${boardHeight}px`,
-            transition: 'all 0.3s ease'
-          }}
-        >
-          {tiles.map((tile) => (
-            <Tile
-              key={tile.id}
-              tile={{ ...tile, minX, minY }}
-              isFree={freeTileIds.has(tile.id)}
-              isSelected={selectedTileId === tile.id}
-              isHinted={hintedPairIds.includes(tile.id)}
-              isMismatch={mismatchedIds.includes(tile.id)}
-              isMatched={matchedIds.includes(tile.id)}
-              isJustUnlocked={justUnlockedIds.includes(tile.id)}
-              onClick={handleTileClick}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Gentle Recovery Modal */}
-      {isDeadEnd && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '130px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)',
-            border: '5px solid #f59e0b',
-            borderRadius: '28px',
-            padding: '22px 44px',
-            boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '28px',
-            zIndex: 60,
-            animation: 'popIn 0.3s ease'
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '24px', fontWeight: '900', color: '#b45309' }}>
-              ⚠️ No Open Moves Remaining!
-            </div>
-            <div style={{ fontSize: '20px', color: '#78350f', fontWeight: '700', marginTop: '3px' }}>
-              Would you like to undo your last move or re-align the remaining tiles?
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '18px' }}>
-            <button
-              onClick={handleUndo}
-              style={{
-                background: '#3b82f6',
-                color: '#ffffff',
-                padding: '16px 30px',
-                borderRadius: '20px',
-                fontWeight: '900',
-                fontSize: '22px',
-                boxShadow: '0 4px 16px rgba(59, 130, 246, 0.4)'
-              }}
-            >
-              ↩️ Undo Move
-            </button>
-            <button
-              onClick={handleSmartReorder}
-              style={{
-                background: '#10b981',
-                color: '#ffffff',
-                padding: '16px 30px',
-                borderRadius: '20px',
-                fontWeight: '900',
-                fontSize: '22px',
-                boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)'
-              }}
-            >
-              ✨ Smart Re-Order
-            </button>
-          </div>
-        </div>
+        />
       )}
 
-      {/* Action Toolbar */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '140px',
-          right: '28px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '18px',
-          zIndex: 25
-        }}
-      >
-        <button
-          onClick={handleHint}
-          style={{
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            color: '#ffffff',
-            padding: '18px 28px',
-            borderRadius: '24px',
-            border: '4px solid #fde68a',
-            boxShadow: '0 8px 26px rgba(217, 119, 6, 0.48)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            fontSize: '24px',
-            fontWeight: '900'
+      {/* Level Selection Scene */}
+      {scene === 'LEVEL_SELECT' && (
+        <LevelSelect
+          levelProgress={levelProgress}
+          onSelectLevel={(levelIdx) => {
+            setCurrentLevelIndex(levelIdx);
+            startLevel(levelIdx);
+            setScene('GAME');
           }}
-        >
-          <span style={{ fontSize: '30px' }}>💡</span>
-          <span>Hint ({hintsRemaining})</span>
-        </button>
+          onBackToMenu={() => setScene('MENU')}
+        />
+      )}
 
-        <button
-          onClick={handleUndo}
-          disabled={moveHistory.length === 0}
-          style={{
-            background: moveHistory.length > 0 ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '#94a3b8',
-            color: '#ffffff',
-            padding: '18px 28px',
-            borderRadius: '24px',
-            border: `4px solid ${moveHistory.length > 0 ? '#93c5fd' : '#cbd5e1'}`,
-            boxShadow: '0 8px 26px rgba(59, 130, 246, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            fontSize: '24px',
-            fontWeight: '900',
-            cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed'
-          }}
-        >
-          <span style={{ fontSize: '30px' }}>↩️</span>
-          <span>Undo</span>
-        </button>
+      {/* How To Play Tutorial Modal */}
+      {showHowToPlay && (
+        <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
+      )}
 
-        <button
-          onClick={() => startLevel(currentLevelIndex)}
-          style={{
-            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-            color: '#ffffff',
-            padding: '18px 28px',
-            borderRadius: '24px',
-            border: '4px solid #fecaca',
-            boxShadow: '0 8px 26px rgba(220, 38, 38, 0.48)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            fontSize: '24px',
-            fontWeight: '900'
-          }}
-        >
-          <span style={{ fontSize: '30px' }}>🔄</span>
-          <span>Restart</span>
-        </button>
-      </div>
-
-      {/* Mascot Pema */}
-      <Mascot
-        tip={mascotTip}
-        mood={mascotMood}
-        onClick={() => {
-          if (speechEnabled && mascotTip) {
-            audio.speakWord(mascotTip);
-          }
-        }}
-      />
-
-      {/* Bottom Progress Bar */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '18px',
-          right: '28px',
-          width: '390px',
-          background: 'rgba(255, 255, 255, 0.97)',
-          borderRadius: '24px',
-          padding: '16px 26px',
-          boxShadow: '0 8px 28px rgba(0, 0, 0, 0.28)',
-          zIndex: 20
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '20px',
-            fontWeight: '900',
-            color: '#1e293b',
-            marginBottom: '8px'
-          }}
-        >
-          <span>Tiles Cleared:</span>
-          <span style={{ color: '#0284c7' }}>
-            {matchedIds.length} / {tiles.length}
-          </span>
-        </div>
-        <div
-          style={{
-            width: '100%',
-            height: '18px',
-            background: '#e2e8f0',
-            borderRadius: '12px',
-            overflow: 'hidden'
-          }}
-        >
+      {/* Active Game Scene */}
+      {scene === 'GAME' && (
+        <>
+          {/* Top Header Bar - Prominent, Large, and Clearly Legible */}
           <div
             style={{
-              width: `${(matchedIds.length / (tiles.length || 1)) * 100}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg, #3b82f6, #10b981)',
-              borderRadius: '12px',
-              transition: 'width 0.4s ease'
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '136px',
+              padding: '16px 44px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              zIndex: 80,
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 75%, rgba(0,0,0,0) 100%)'
+            }}
+          >
+            {/* Left: Home / Level selector and prominent title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button
+                onClick={() => setScene('MENU')}
+                title="Go to Main Menu"
+                style={{
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  padding: '14px 20px',
+                  borderRadius: '20px',
+                  fontSize: '24px',
+                  fontWeight: '900',
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                🏠
+              </button>
+
+              <button
+                onClick={() => setScene('LEVEL_SELECT')}
+                title="Choose Levels"
+                style={{
+                  background: '#ffffff',
+                  color: '#1e293b',
+                  padding: '14px 20px',
+                  borderRadius: '20px',
+                  fontSize: '24px',
+                  fontWeight: '900',
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
+                  cursor: 'pointer'
+                }}
+              >
+                🗺️
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => setCurrentLevelIndex((prev) => Math.max(0, prev - 1))}
+                  disabled={currentLevelIndex === 0}
+                  style={{
+                    background: currentLevelIndex === 0 ? 'rgba(255,255,255,0.3)' : '#ffffff',
+                    color: '#1e293b',
+                    padding: '14px 18px',
+                    borderRadius: '20px',
+                    fontSize: '22px',
+                    fontWeight: '900',
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
+                    cursor: currentLevelIndex === 0 ? 'not-allowed' : 'pointer'
+                  }}
+                  title="Previous Level"
+                >
+                  ⬅️
+                </button>
+
+                <div
+                  style={{
+                    background: 'rgba(255,255,255,0.95)',
+                    padding: '12px 18px',
+                    borderRadius: '20px',
+                    fontSize: '20px',
+                    fontWeight: '900',
+                    color: '#0284c7'
+                  }}
+                >
+                  {currentLevelIndex + 1}/{LEVELS.length}
+                </div>
+
+                <button
+                  onClick={() => setCurrentLevelIndex((prev) => Math.min(LEVELS.length - 1, prev + 1))}
+                  disabled={currentLevelIndex === LEVELS.length - 1}
+                  style={{
+                    background: currentLevelIndex === LEVELS.length - 1 ? 'rgba(255,255,255,0.3)' : '#ffffff',
+                    color: '#1e293b',
+                    padding: '14px 18px',
+                    borderRadius: '20px',
+                    fontSize: '22px',
+                    fontWeight: '900',
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
+                    cursor: currentLevelIndex === LEVELS.length - 1 ? 'not-allowed' : 'pointer'
+                  }}
+                  title="Next Level"
+                >
+                  ➡️
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: '6px' }}>
+                <h1
+                  style={{
+                    fontSize: '36px',
+                    fontWeight: '900',
+                    color: '#ffffff',
+                    textShadow: '0 4px 10px rgba(0,0,0,0.85)',
+                    margin: 0,
+                    padding: '2px 0',
+                    lineHeight: 1.2,
+                    letterSpacing: '-0.3px',
+                    fontFamily: "'Fredoka', sans-serif"
+                  }}
+                >
+                  {level.title}
+                </h1>
+                <div
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: '800',
+                    color: '#fef08a',
+                    textShadow: '0 2px 6px rgba(0,0,0,0.8)',
+                    marginTop: '2px',
+                    lineHeight: 1.2
+                  }}
+                >
+                  Grade 3 • {level.subtitle}
+                </div>
+              </div>
+            </div>
+
+            {/* Center: Objective Banner with large readable instruction */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.98)',
+                padding: '12px 30px',
+                borderRadius: '50px',
+                border: '4px solid #facc15',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                maxWidth: '620px'
+              }}
+            >
+              <span style={{ fontSize: '30px' }}>🎯</span>
+              <span style={{ fontSize: '22px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
+                {level.description}
+              </span>
+            </div>
+
+            {/* Right: Essential HUD & Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div
+                style={{
+                  background: availableFreePairs.length > 0 ? '#ecfdf5' : '#fef2f2',
+                  border: `3px solid ${availableFreePairs.length > 0 ? '#10b981' : '#ef4444'}`,
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                }}
+                title="Playable open pairs right now"
+              >
+                <div style={{ fontSize: '13px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#047857' : '#b91c1c', letterSpacing: '0.8px' }}>
+                  OPEN PAIRS
+                </div>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626' }}>
+                  {availableFreePairs.length}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.96)',
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>SCORE</div>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7' }}>{score}</div>
+              </div>
+
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.96)',
+                  padding: '8px 20px',
+                  borderRadius: '20px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>TIME</div>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669' }}>{timer}s</div>
+              </div>
+
+              <button
+                onClick={() => {
+                  const next = !soundEnabled;
+                  setSoundEnabled(next);
+                  audio.soundEnabled = next;
+                }}
+                style={{
+                  background: soundEnabled ? '#22c55e' : '#94a3b8',
+                  color: '#ffffff',
+                  padding: '12px 16px',
+                  borderRadius: '20px',
+                  fontSize: '24px',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+                }}
+                title="Toggle Sound"
+              >
+                {soundEnabled ? '🔔' : '🔕'}
+              </button>
+
+              <button
+                onClick={() => {
+                  const next = !speechEnabled;
+                  setSpeechEnabled(next);
+                  audio.speechEnabled = next;
+                }}
+                style={{
+                  background: speechEnabled ? '#3b82f6' : '#94a3b8',
+                  color: '#ffffff',
+                  padding: '12px 16px',
+                  borderRadius: '20px',
+                  fontSize: '24px',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.25)'
+                }}
+                title="Toggle Voice Speech"
+              >
+                {speechEnabled ? '🗣️' : '🤐'}
+              </button>
+            </div>
+          </div>
+
+          {/* Main Playing Board - Strictly Centered as a Single Cohesive Giant Unit */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '140px',
+              bottom: '70px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '1800px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 10
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                width: `${boardWidth}px`,
+                height: `${boardHeight}px`,
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {tiles.map((tile) => (
+                <Tile
+                  key={tile.id}
+                  tile={{ ...tile, minX, minY }}
+                  isFree={freeTileIds.has(tile.id)}
+                  isSelected={selectedTileId === tile.id}
+                  isHinted={hintedPairIds.includes(tile.id)}
+                  isMismatch={mismatchedIds.includes(tile.id)}
+                  isMatched={matchedIds.includes(tile.id)}
+                  isJustUnlocked={justUnlockedIds.includes(tile.id)}
+                  onClick={handleTileClick}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Gentle Recovery Modal */}
+          {isDeadEnd && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '130px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)',
+                border: '5px solid #f59e0b',
+                borderRadius: '28px',
+                padding: '22px 44px',
+                boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '28px',
+                zIndex: 90,
+                animation: 'popIn 0.3s ease'
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: '900', color: '#b45309' }}>
+                  ⚠️ No Open Moves Remaining!
+                </div>
+                <div style={{ fontSize: '20px', color: '#78350f', fontWeight: '700', marginTop: '3px' }}>
+                  Would you like to undo your last move or re-align the remaining tiles?
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '18px' }}>
+                <button
+                  onClick={handleUndo}
+                  disabled={moveHistory.length === 0}
+                  style={{
+                    background: moveHistory.length > 0 ? '#3b82f6' : '#94a3b8',
+                    color: '#ffffff',
+                    padding: '16px 30px',
+                    borderRadius: '20px',
+                    fontWeight: '900',
+                    fontSize: '22px',
+                    boxShadow: '0 4px 16px rgba(59, 130, 246, 0.4)',
+                    cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  ↩️ Undo Move
+                </button>
+                <button
+                  onClick={handleSmartReorder}
+                  style={{
+                    background: '#10b981',
+                    color: '#ffffff',
+                    padding: '16px 30px',
+                    borderRadius: '20px',
+                    fontWeight: '900',
+                    fontSize: '22px',
+                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  ✨ Smart Re-Order
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Action Toolbar */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '140px',
+              right: '28px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+              zIndex: 85
+            }}
+          >
+            <button
+              onClick={handleHint}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: '#ffffff',
+                padding: '18px 28px',
+                borderRadius: '24px',
+                border: '4px solid #fde68a',
+                boxShadow: '0 8px 26px rgba(217, 119, 6, 0.48)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                fontSize: '24px',
+                fontWeight: '900'
+              }}
+            >
+              <span style={{ fontSize: '30px' }}>💡</span>
+              <span>Hint ({hintsRemaining})</span>
+            </button>
+
+            <button
+              onClick={handleUndo}
+              disabled={moveHistory.length === 0}
+              style={{
+                background: moveHistory.length > 0 ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '#94a3b8',
+                color: '#ffffff',
+                padding: '18px 28px',
+                borderRadius: '24px',
+                border: `4px solid ${moveHistory.length > 0 ? '#93c5fd' : '#cbd5e1'}`,
+                boxShadow: '0 8px 26px rgba(59, 130, 246, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                fontSize: '24px',
+                fontWeight: '900',
+                cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed'
+              }}
+            >
+              <span style={{ fontSize: '30px' }}>↩️</span>
+              <span>Undo</span>
+            </button>
+
+            <button
+              onClick={() => startLevel(currentLevelIndex)}
+              style={{
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                color: '#ffffff',
+                padding: '18px 28px',
+                borderRadius: '24px',
+                border: '4px solid #fecaca',
+                boxShadow: '0 8px 26px rgba(220, 38, 38, 0.48)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                fontSize: '24px',
+                fontWeight: '900'
+              }}
+            >
+              <span style={{ fontSize: '30px' }}>🔄</span>
+              <span>Restart</span>
+            </button>
+          </div>
+
+          {/* Mascot Pema */}
+          <Mascot
+            tip={mascotTip}
+            mood={mascotMood}
+            onClick={() => {
+              if (speechEnabled && mascotTip) {
+                audio.speakWord(mascotTip);
+              }
             }}
           />
-        </div>
-      </div>
 
-      {/* Victory Modal */}
-      {isVictory && (
-        <VictoryModal
-          score={score}
-          timeTaken={timer}
-          levelTitle={level.title}
-          stars={timer < 60 ? 3 : timer < 120 ? 2 : 1}
-          hasNextLevel={currentLevelIndex < LEVELS.length - 1}
-          onNextLevel={() => setCurrentLevelIndex((prev) => prev + 1)}
-          onReplay={() => startLevel(currentLevelIndex)}
-        />
+          {/* Bottom Progress Bar */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '18px',
+              right: '28px',
+              width: '390px',
+              background: 'rgba(255, 255, 255, 0.97)',
+              borderRadius: '24px',
+              padding: '16px 26px',
+              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.28)',
+              zIndex: 20
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontSize: '20px',
+                fontWeight: '900',
+                color: '#1e293b',
+                marginBottom: '8px'
+              }}
+            >
+              <span>Tiles Cleared:</span>
+              <span style={{ color: '#0284c7' }}>
+                {matchedIds.length} / {tiles.length}
+              </span>
+            </div>
+            <div
+              style={{
+                width: '100%',
+                height: '18px',
+                background: '#e2e8f0',
+                borderRadius: '12px',
+                overflow: 'hidden'
+              }}
+            >
+              <div
+                style={{
+                  width: `${(matchedIds.length / (tiles.length || 1)) * 100}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+                  borderRadius: '12px',
+                  transition: 'width 0.4s ease'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Victory Modal */}
+          {isVictory && (
+            <VictoryModal
+              score={score}
+              timeTaken={timer}
+              levelTitle={level.title}
+              stars={timer < 60 ? 3 : timer < 120 ? 2 : 1}
+              hasNextLevel={currentLevelIndex < LEVELS.length - 1}
+              onNextLevel={() => {
+                const nextIdx = currentLevelIndex + 1;
+                setCurrentLevelIndex(nextIdx);
+                startLevel(nextIdx);
+              }}
+              onReplay={() => startLevel(currentLevelIndex)}
+              onLevelMap={() => setScene('LEVEL_SELECT')}
+              onHome={() => setScene('MENU')}
+            />
+          )}
+        </>
       )}
     </AspectRatioContainer>
   );
