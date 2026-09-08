@@ -7,6 +7,7 @@ export const VictoryModal = ({
   score,
   stars = 3,
   timeTaken,
+  levelId,
   levelTitle,
   onNextLevel,
   onReplay,
@@ -108,9 +109,30 @@ export const VictoryModal = ({
           🎉 Shabbash! Outstanding! 🎉
         </div>
 
-        {/* Level Name */}
-        <div style={{ marginTop: '32px', fontSize: '30px', fontWeight: '800', color: '#334155' }}>
-          {levelTitle} Complete!
+        {/* Level Label & Name */}
+        <div style={{ marginTop: '30px' }}>
+          {levelId && (
+            <div
+              style={{
+                display: 'inline-block',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                padding: '6px 20px',
+                borderRadius: '16px',
+                fontSize: '20px',
+                fontWeight: '900',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                marginBottom: '8px',
+                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
+              }}
+            >
+              Level {levelId}
+            </div>
+          )}
+          <div style={{ fontSize: '32px', fontWeight: '900', color: '#1e293b', fontFamily: "'Fredoka', sans-serif" }}>
+            {levelTitle} Complete!
+          </div>
         </div>
 
         {/* Star Rating Display */}
@@ -152,62 +174,71 @@ export const VictoryModal = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '38px', flexWrap: 'wrap' }}>
+        {/* Action Buttons - Horizontal row without icons */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '38px', width: '100%' }}>
           <button
             onClick={onLevelMap}
             style={{
+              flex: 1,
               background: '#0284c7',
               color: '#ffffff',
-              padding: '18px 36px',
+              padding: '18px 20px',
               borderRadius: '24px',
-              fontSize: '24px',
+              fontSize: '22px',
               fontWeight: '900',
               boxShadow: '0 6px 18px rgba(2, 132, 199, 0.4)',
               display: 'flex',
+              justifyContent: 'center',
               alignItems: 'center',
-              gap: '10px'
+              textAlign: 'center',
+              whiteSpace: 'nowrap'
             }}
           >
-            🗺️ Levels
+            Levels
           </button>
 
           <button
             onClick={onReplay}
             style={{
+              flex: 1,
               background: '#e2e8f0',
               color: '#1e293b',
-              padding: '18px 36px',
+              padding: '18px 20px',
               borderRadius: '24px',
-              fontSize: '24px',
+              fontSize: '22px',
               fontWeight: '900',
               boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
               display: 'flex',
+              justifyContent: 'center',
               alignItems: 'center',
-              gap: '10px'
+              textAlign: 'center',
+              whiteSpace: 'nowrap'
             }}
           >
-            🔄 Replay
+            Replay
           </button>
 
           {hasNextLevel && (
             <button
               onClick={onNextLevel}
               style={{
+                flex: 1.2,
                 background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
                 color: '#ffffff',
-                padding: '18px 46px',
+                padding: '18px 24px',
                 borderRadius: '24px',
-                fontSize: '26px',
+                fontSize: '24px',
                 fontWeight: '900',
                 boxShadow: '0 8px 28px rgba(34, 197, 94, 0.45)',
                 border: '3.5px solid #bbf7d0',
                 display: 'flex',
+                justifyContent: 'center',
                 alignItems: 'center',
-                gap: '10px'
+                textAlign: 'center',
+                whiteSpace: 'nowrap'
               }}
             >
-              Next Level ➡️
+              Next Level
             </button>
           )}
         </div>

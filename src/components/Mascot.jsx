@@ -10,11 +10,11 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
       onClick={onClick}
       style={{
         position: 'absolute',
-        bottom: '110px',
-        left: '32px',
+        bottom: '18px',
+        left: '28px',
         display: 'flex',
         alignItems: 'flex-end',
-        gap: '20px',
+        gap: '16px',
         zIndex: 25,
         cursor: 'pointer',
         touchAction: 'manipulation',
@@ -88,23 +88,23 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
         </svg>
       </div>
 
-      {/* Speech Bubble - Generously Sized & Clear */}
+      {/* Speech Bubble - Compact & Clear */}
       <div
         style={{
           background: '#ffffff',
-          borderRadius: '28px',
-          padding: '22px 34px',
-          maxWidth: '500px',
-          boxShadow: '0 12px 34px rgba(0, 0, 0, 0.3)',
-          border: '5px solid #facc15',
+          borderRadius: '24px',
+          padding: '14px 24px',
+          maxWidth: '460px',
+          boxShadow: '0 10px 28px rgba(0, 0, 0, 0.28)',
+          border: '4px solid #facc15',
           position: 'relative',
-          marginBottom: '16px'
+          marginBottom: '6px'
         }}
       >
-        <div style={{ fontSize: '20px', fontWeight: '900', color: '#d97706', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+        <div style={{ fontSize: '17px', fontWeight: '900', color: '#d97706', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
           🐾 Pema says:
         </div>
-        <div style={{ fontSize: '25px', fontWeight: '800', color: '#1e293b', lineHeight: '1.35', fontFamily: "'Fredoka', sans-serif" }}>
+        <div style={{ fontSize: '21px', fontWeight: '800', color: '#1e293b', lineHeight: '1.3', fontFamily: "'Fredoka', sans-serif" }}>
           {tip || 'Match the word pairs to clear the board!'}
         </div>
         {/* Tail pointing to avatar */}

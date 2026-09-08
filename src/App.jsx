@@ -770,26 +770,6 @@ export default function App() {
               <span style={{ fontSize: '30px' }}>↩️</span>
               <span>Undo</span>
             </button>
-
-            <button
-              onClick={() => startLevel(currentLevelIndex)}
-              style={{
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: '#ffffff',
-                padding: '18px 28px',
-                borderRadius: '24px',
-                border: '4px solid #fecaca',
-                boxShadow: '0 8px 26px rgba(220, 38, 38, 0.48)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                fontSize: '24px',
-                fontWeight: '900'
-              }}
-            >
-              <span style={{ fontSize: '30px' }}>🔄</span>
-              <span>Restart</span>
-            </button>
           </div>
 
           {/* Mascot Pema */}
@@ -858,6 +838,7 @@ export default function App() {
             <VictoryModal
               score={score}
               timeTaken={timer}
+              levelId={level.id}
               levelTitle={level.title}
               stars={timer < 60 ? 3 : timer < 120 ? 2 : 1}
               hasNextLevel={currentLevelIndex < LEVELS.length - 1}
