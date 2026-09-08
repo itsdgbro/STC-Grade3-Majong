@@ -463,58 +463,7 @@ export default function App() {
           >
             {/* Left-Center: Level info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  onClick={() => setCurrentLevelIndex((prev) => Math.max(0, prev - 1))}
-                  disabled={currentLevelIndex === 0}
-                  style={{
-                    background: currentLevelIndex === 0 ? 'rgba(255,255,255,0.3)' : '#ffffff',
-                    color: '#1e293b',
-                    padding: '14px 18px',
-                    borderRadius: '20px',
-                    fontSize: '22px',
-                    fontWeight: '900',
-                    boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
-                    cursor: currentLevelIndex === 0 ? 'not-allowed' : 'pointer'
-                  }}
-                  title="Previous Level"
-                >
-                  ⬅️
-                </button>
-
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.95)',
-                    padding: '12px 18px',
-                    borderRadius: '20px',
-                    fontSize: '20px',
-                    fontWeight: '900',
-                    color: '#0284c7'
-                  }}
-                >
-                  {currentLevelIndex + 1}/{LEVELS.length}
-                </div>
-
-                <button
-                  onClick={() => setCurrentLevelIndex((prev) => Math.min(LEVELS.length - 1, prev + 1))}
-                  disabled={currentLevelIndex === LEVELS.length - 1}
-                  style={{
-                    background: currentLevelIndex === LEVELS.length - 1 ? 'rgba(255,255,255,0.3)' : '#ffffff',
-                    color: '#1e293b',
-                    padding: '14px 18px',
-                    borderRadius: '20px',
-                    fontSize: '22px',
-                    fontWeight: '900',
-                    boxShadow: '0 6px 18px rgba(0,0,0,0.3)',
-                    cursor: currentLevelIndex === LEVELS.length - 1 ? 'not-allowed' : 'pointer'
-                  }}
-                  title="Next Level"
-                >
-                  ➡️
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', marginLeft: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <h1
                   style={{
                     fontSize: '34px',
