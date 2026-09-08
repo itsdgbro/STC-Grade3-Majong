@@ -451,114 +451,101 @@ export default function App() {
               top: 0,
               left: 0,
               width: '100%',
-              height: '136px',
-              padding: '16px 44px 16px 250px', // Extra left padding for top toolbar
+              height: '120px',
+              padding: '16px 44px',
               display: 'flex',
-              justifyContent: 'space-between',
               alignItems: 'center',
               zIndex: 80,
-              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 75%, rgba(0,0,0,0) 100%)',
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 75%, rgba(0,0,0,0) 100%)',
               boxSizing: 'border-box'
             }}
           >
-            {/* Left-Center: Level info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <h1
-                  style={{
-                    fontSize: '34px',
-                    fontWeight: '900',
-                    color: '#ffffff',
-                    textShadow: '0 4px 10px rgba(0,0,0,0.85)',
-                    margin: 0,
-                    padding: '2px 0',
-                    lineHeight: 1.2,
-                    letterSpacing: '-0.3px',
-                    fontFamily: "'Fredoka', sans-serif"
-                  }}
-                >
-                  {level.title}
-                </h1>
-                <div
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: '800',
-                    color: '#fef08a',
-                    textShadow: '0 2px 6px rgba(0,0,0,0.8)',
-                    marginTop: '2px',
-                    lineHeight: 1.2
-                  }}
-                >
-                  Grade 3 • {level.subtitle}
-                </div>
-              </div>
-            </div>
-
-            {/* Center: Objective Banner with large readable instruction */}
+            {/* Center: Objective / Target Question Banner strictly centered at top */}
             <div
               style={{
+                position: 'absolute',
+                top: '22px',
+                left: '50%',
+                transform: 'translateX(-50%)',
                 background: 'rgba(255, 255, 255, 0.98)',
-                padding: '12px 30px',
+                padding: '14px 38px',
                 borderRadius: '50px',
                 border: '4px solid #facc15',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                maxWidth: '620px'
+                gap: '14px',
+                maxWidth: '750px',
+                zIndex: 82
               }}
             >
-              <span style={{ fontSize: '30px' }}>🎯</span>
-              <span style={{ fontSize: '22px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
+              <span style={{ fontSize: '32px' }}>🎯</span>
+              <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
                 {level.description}
               </span>
             </div>
 
-            {/* Right: Essential HUD */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Right: Essential HUD (Open Pairs, Score, Time) with Fixed Widths */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82 }}>
               <div
                 style={{
+                  width: '145px',
+                  boxSizing: 'border-box',
                   background: availableFreePairs.length > 0 ? '#ecfdf5' : '#fef2f2',
                   border: `3px solid ${availableFreePairs.length > 0 ? '#10b981' : '#ef4444'}`,
-                  padding: '8px 20px',
+                  padding: '8px 12px',
                   borderRadius: '20px',
                   textAlign: 'center',
                   boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
                 }}
                 title="Playable open pairs right now"
               >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#047857' : '#b91c1c', letterSpacing: '0.8px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#047857' : '#b91c1c', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
                   OPEN PAIRS
                 </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626' }}>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
                   {availableFreePairs.length}
                 </div>
               </div>
 
               <div
                 style={{
+                  width: '135px',
+                  boxSizing: 'border-box',
                   background: 'rgba(255, 255, 255, 0.96)',
-                  padding: '8px 20px',
+                  padding: '8px 12px',
                   borderRadius: '20px',
                   textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                  border: '3px solid rgba(255, 255, 255, 0.9)'
                 }}
               >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>SCORE</div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7' }}>{score}</div>
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
+                  SCORE
+                </div>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7', fontVariantNumeric: 'tabular-nums' }}>
+                  {score}
+                </div>
               </div>
 
               <div
                 style={{
+                  width: '135px',
+                  boxSizing: 'border-box',
                   background: 'rgba(255, 255, 255, 0.96)',
-                  padding: '8px 20px',
+                  padding: '8px 12px',
                   borderRadius: '20px',
                   textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+                  border: '3px solid rgba(255, 255, 255, 0.9)'
                 }}
               >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px' }}>TIME</div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669' }}>{timer}s</div>
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
+                  TIME
+                </div>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
+                  {timer}s
+                </div>
               </div>
             </div>
           </div>

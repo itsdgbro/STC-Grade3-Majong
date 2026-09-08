@@ -24,7 +24,6 @@ export const PauseModal = ({
         zIndex: 150,
         animation: 'popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}
-      onClick={onResume}
     >
       <div
         style={{
@@ -138,6 +137,45 @@ export const PauseModal = ({
             <span>Quit</span>
           </button>
         </div>
+
+        {/* Bottom Right Circular Close Button with X cross icon */}
+        <button
+          onClick={() => {
+            audio.playSelect();
+            onResume();
+          }}
+          title="Close"
+          style={{
+            position: 'absolute',
+            bottom: '-28px',
+            right: '-28px',
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: '#ffffff',
+            border: '4px solid #ffffff',
+            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)',
+            fontSize: '30px',
+            fontWeight: '900',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease',
+            zIndex: 10
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.12)';
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(220, 38, 38, 0.7)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)';
+          }}
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

@@ -92,6 +92,39 @@ html, body {
   50% { transform: translateY(-15px); }
 }
 
+/* Rotate Device Overlay for Portrait Mode */
+.rotate-device-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #0f172a;
+  z-index: 99999;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+@media screen and (orientation: portrait) {
+  .rotate-device-overlay {
+    display: flex !important;
+  }
+}
+
+@keyframes rotatePhone {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+  100% { transform: rotate(-90deg); }
+}
+
+.rotate-phone-icon {
+  font-size: 80px;
+  animation: rotatePhone 2s ease-in-out infinite alternate;
+  margin-bottom: 24px;
+}
+
 /* Button & UI utilities with touch improvements */
 button {
   font-family: inherit;

@@ -80,24 +80,26 @@ export const HimalayanBackground = ({ themeGradient }) => {
       {/* Distant Snow Mountains (Himalayas) */}
       <svg
         viewBox="0 0 1920 600"
+        preserveAspectRatio="none"
         style={{
           position: 'absolute',
-          bottom: '240px',
+          bottom: '220px',
           left: 0,
+          right: 0,
           width: '100%',
-          height: '420px',
+          height: '440px',
           opacity: 0.95
         }}
       >
-        <polygon points="100,500 450,120 750,500" fill="#cbd5e1" />
+        <polygon points="0,520 100,500 450,120 750,500 900,520" fill="#cbd5e1" />
         <polygon points="450,120 400,200 450,220 480,180" fill="#f8fafc" />
         <polygon points="450,120 480,180 520,230 450,220" fill="#e2e8f0" />
 
-        <polygon points="600,550 960,60 1350,550" fill="#94a3b8" />
+        <polygon points="500,550 960,60 1450,550" fill="#94a3b8" />
         <polygon points="960,60 880,180 940,210 960,190" fill="#ffffff" />
         <polygon points="960,60 960,190 1020,210 1050,160" fill="#e2e8f0" />
 
-        <polygon points="1200,500 1520,140 1850,500" fill="#cbd5e1" />
+        <polygon points="1100,500 1520,140 1920,480 1920,550 1100,550" fill="#cbd5e1" />
         <polygon points="1520,140 1460,230 1520,250 1560,200" fill="#ffffff" />
         <polygon points="1520,140 1560,200 1600,240 1520,250" fill="#e2e8f0" />
       </svg>
@@ -105,10 +107,12 @@ export const HimalayanBackground = ({ themeGradient }) => {
       {/* Prayer Flags (Nepal Dhoja) */}
       <svg
         viewBox="0 0 1920 120"
+        preserveAspectRatio="none"
         style={{
           position: 'absolute',
           top: '0',
           left: 0,
+          right: 0,
           width: '100%',
           height: '90px',
           opacity: 0.85
@@ -149,20 +153,23 @@ export const HimalayanBackground = ({ themeGradient }) => {
         ))}
       </svg>
 
-      {/* Midground Lush Green Hills */}
+      {/* Midground Lush Green Hills (Spanning Edge-to-Edge) */}
       <svg
         viewBox="0 0 1920 400"
+        preserveAspectRatio="none"
         style={{
           position: 'absolute',
           bottom: '0px',
           left: 0,
+          right: 0,
           width: '100%',
-          height: '380px'
+          height: '420px',
+          display: 'block'
         }}
       >
-        <path d="M 0,260 Q 400,60 800,180 T 1600,120 Q 1800,150 1920,200 L 1920,400 L 0,400 Z" fill="#22c55e" opacity="0.45" />
-        <path d="M 0,310 Q 300,130 700,250 T 1500,170 Q 1750,190 1920,270 L 1920,400 L 0,400 Z" fill="#16a34a" opacity="0.8" />
-        <path d="M 0,360 Q 450,220 950,310 T 1700,240 Q 1820,260 1920,330 L 1920,400 L 0,400 Z" fill="#15803d" />
+        <path d="M 0,220 Q 400,30 800,150 T 1600,90 Q 1800,120 1920,170 L 1920,400 L 0,400 Z" fill="#22c55e" opacity="0.45" />
+        <path d="M 0,270 Q 300,90 700,210 T 1500,130 Q 1750,150 1920,230 L 1920,400 L 0,400 Z" fill="#16a34a" opacity="0.8" />
+        <path d="M 0,320 Q 450,180 950,270 T 1700,200 Q 1820,220 1920,290 L 1920,400 L 0,400 Z" fill="#15803d" />
       </svg>
     </div>
   );

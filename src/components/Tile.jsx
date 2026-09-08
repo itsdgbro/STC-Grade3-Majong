@@ -95,6 +95,7 @@ export const Tile = ({
         top: `${topPx}px`,
         zIndex: tile.z * 30 + Math.floor(tile.y) * 2 + (isSelected ? 99 : 0),
         cursor: isFree ? 'pointer' : 'not-allowed',
+        pointerEvents: isFree ? 'auto' : 'none',
         transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease',
         transform: transformStyle,
         touchAction: 'manipulation',

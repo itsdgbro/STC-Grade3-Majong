@@ -36,7 +36,6 @@ export const SettingsModal = ({
         zIndex: 150,
         animation: 'popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}
-      onClick={onClose}
     >
       <div
         style={{
@@ -314,7 +313,10 @@ export const SettingsModal = ({
 
         {/* Close Done Button */}
         <button
-          onClick={onClose}
+          onClick={() => {
+            audio.playSelect();
+            onClose();
+          }}
           style={{
             background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
             color: '#ffffff',
@@ -324,10 +326,52 @@ export const SettingsModal = ({
             fontWeight: '900',
             boxShadow: '0 8px 24px rgba(34, 197, 94, 0.45)',
             border: '3.5px solid #bbf7d0',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'transform 0.18s ease'
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
         >
           ✓ Done
+        </button>
+
+        {/* Bottom Right Circular Close Button with X cross icon */}
+        <button
+          onClick={() => {
+            audio.playSelect();
+            onClose();
+          }}
+          title="Close"
+          style={{
+            position: 'absolute',
+            bottom: '-28px',
+            right: '-28px',
+            width: '68px',
+            height: '68px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: '#ffffff',
+            border: '4px solid #ffffff',
+            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)',
+            fontSize: '30px',
+            fontWeight: '900',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease',
+            zIndex: 10
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'scale(1.12)';
+            e.currentTarget.style.boxShadow = '0 12px 30px rgba(220, 38, 38, 0.7)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)';
+          }}
+        >
+          ✕
         </button>
       </div>
     </div>
