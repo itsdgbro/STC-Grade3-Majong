@@ -1,5 +1,4 @@
-import React from 'react';
-import { LEVELS } from '../data/gameData';
+import { LEVELS as DEFAULT_LEVELS } from '../data/gameData';
 import { audio } from '../utils/audio';
 
 /**
@@ -7,6 +6,7 @@ import { audio } from '../utils/audio';
  * Large readable text, focused info, and vibrant clickable level cards.
  */
 export const LevelSelect = ({
+  levels = DEFAULT_LEVELS,
   levelProgress = {},
   onSelectLevel
 }) => {
@@ -75,9 +75,9 @@ export const LevelSelect = ({
           alignItems: 'stretch'
         }}
       >
-        {LEVELS.map((lvl, index) => {
+        {levels.map((lvl, index) => {
           const progress = levelProgress[lvl.id] || { stars: 0, highScore: 0, completed: false };
-          const isUnlocked = index === 0 || (levelProgress[LEVELS[index - 1]?.id]?.completed ?? false) || progress.stars > 0;
+          const isUnlocked = index === 0 || (levelProgress[levels[index - 1]?.id]?.completed ?? false) || progress.stars > 0;
           const themeColor = lvl.themeColor || '#0284c7';
 
           return (

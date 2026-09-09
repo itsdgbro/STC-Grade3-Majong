@@ -21,7 +21,8 @@ export const SettingsModal = ({
   speechVolume,
   setSpeechVolume,
   speechMuted,
-  setSpeechMuted
+  setSpeechMuted,
+  onToggleBridgeDebug
 }) => {
   return (
     <div
@@ -310,30 +311,6 @@ export const SettingsModal = ({
             </div>
           </div>
         </div>
-
-        {/* Close Done Button */}
-        <button
-          onClick={() => {
-            audio.playSelect();
-            onClose();
-          }}
-          style={{
-            background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-            color: '#ffffff',
-            padding: '16px 64px',
-            borderRadius: '26px',
-            fontSize: '26px',
-            fontWeight: '900',
-            boxShadow: '0 8px 24px rgba(34, 197, 94, 0.45)',
-            border: '3.5px solid #bbf7d0',
-            cursor: 'pointer',
-            transition: 'transform 0.18s ease'
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.04)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-        >
-          ✓ Done
-        </button>
 
         {/* Bottom Right Circular Close Button with X cross icon */}
         <button

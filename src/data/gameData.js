@@ -21,6 +21,7 @@ export const LEVELS = [
       { id: "e8", word1: "Clean", word2: "Dirty", icon1: "✨", icon2: "🧦", relation: "Opposites" }
     ],
     // 12-Tile Gentle Starter Layout (2 layers, stepped wings, clear entry points)
+    starTimes: { threeStars: 50, twoStars: 90 },
     layout: [
       // Layer 0: Stepped base (10 tiles)
       { x: 0, y: 1, z: 0 }, { x: 8, y: 1, z: 0 },
@@ -53,6 +54,7 @@ export const LEVELS = [
       { id: "s9", word1: "Simple", word2: "Easy", icon1: "🧩", icon2: "👌", relation: "Synonyms" }
     ],
     // 16-Tile Cross Layout (2 layers)
+    starTimes: { threeStars: 75, twoStars: 130 },
     layout: [
       // Layer 0: Wings and body (12 tiles)
       { x: 4, y: 0, z: 0 },
@@ -87,6 +89,7 @@ export const LEVELS = [
       { id: "a10", word1: "Tree", word2: "Grow", icon1: "🌳", icon2: "🌱", relation: "Partners" }
     ],
     // 20-Tile 2-Layer Bridge Layout
+    starTimes: { threeStars: 100, twoStars: 170 },
     layout: [
       // Layer 0: Bridge platform and pillars (16 tiles)
       { x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 0 },
@@ -124,6 +127,7 @@ export const LEVELS = [
       { id: "p12", word1: "Doctor", word2: "Heal", icon1: "🩺", icon2: "🩹", relation: "Partners" }
     ],
     // 24-Tile 3-Layer Pagoda Layout
+    starTimes: { threeStars: 130, twoStars: 220 },
     layout: [
       // Layer 0: Base Tier (14 tiles)
       { x: 0, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 6, y: 3, z: 0 }, { x: 8, y: 3, z: 0 },
@@ -168,6 +172,7 @@ export const LEVELS = [
       { id: "m14", word1: "Easy", word2: "Simple", icon1: "👌", icon2: "🧩", relation: "Synonyms" }
     ],
     // 28-Tile Balanced 3-Layer Dragon Layout (guaranteed unblocked entryways)
+    starTimes: { threeStars: 160, twoStars: 260 },
     layout: [
       // Layer 0: Wings & Claws (18 tiles)
       { x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 0 },

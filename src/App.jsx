@@ -10,14 +10,19 @@ import { GlobalTopBar } from './components/GlobalTopBar';
 import { Tile } from './components/Tile';
 import { Mascot } from './components/Mascot';
 import { VictoryModal } from './components/VictoryModal';
-import { LEVELS } from './data/gameData';
+import { LEVELS as DEFAULT_LEVELS } from './data/gameData';
+import { loadGameLevels } from './utils/dataLoader';
 import { 
   getFreeTiles, 
   getAvailableFreePairs, 
   generateSolutionFirstPuzzle, 
-  findSolvableHint 
+  findSolvableHint,
+  getLayoutForLevel
 } from './utils/mahjongEngine';
 import { audio } from './utils/audio';
+import { formatTime } from './utils/timeFormatter';
+import { flutterBridge } from './utils/flutterBridge';
+import { BridgeDebugOverlay } from './components/BridgeDebugOverlay';
 
 export default function App() {
   // Navigation Scene State: 'MENU' | 'LEVEL_SELECT' | 'GAME'
@@ -27,6 +32,7 @@ export default function App() {
   const [showPause, setShowPause] = useState(false);
   
   // Persistent level stars & progress
+  const [levels, setLevels] = useState(DEFAULT_LEVELS);
   const [levelProgress, setLevelProgress] = useState(() => {
     try {
       const saved = localStorage.getItem('stc_mahjong_progress');
@@ -35,6 +41,28 @@ export default function App() {
       return { 1: { stars: 0, highScore: 0, completed: false } };
     }
   });
+
+  // Load levels dynamically on mount and expose window.loadGameData
+  useEffect(() => {
+    loadGameLevels().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setLevels(data);
+      }
+    });
+
+    window.loadGameData = (customLevels) => {
+      if (Array.isArray(customLevels) && customLevels.length > 0) {
+        console.log('[App] Custom levels dynamically set via window.loadGameData');
+        setLevels(customLevels);
+        setCurrentLevelIndex(0);
+        setScene('LEVEL_SELECT');
+      }
+    };
+
+    return () => {
+      delete window.loadGameData;
+    };
+  }, []);
 
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
   const [tiles, setTiles] = useState([]);
@@ -49,6 +77,7 @@ export default function App() {
   const [mascotTip, setMascotTip] = useState('');
   const [mascotMood, setMascotMood] = useState('happy');
   const [isVictory, setIsVictory] = useState(false);
+  const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0 });
   const [timer, setTimer] = useState(0);
   const [isGameActive, setIsGameActive] = useState(false);
   
@@ -60,16 +89,15 @@ export default function App() {
   const [speechVolume, setSpeechVolume] = useState(0.7);
   const [speechMuted, setSpeechMuted] = useState(false);
 
-  // Save progress to localStorage
-  useEffect(() => {
+  // Flutter Bridge Debug Overlay state (auto-enabled if ?debug_bridge=true in URL)
+  const [showBridgeDebug, setShowBridgeDebug] = useState(() => {
     try {
-      localStorage.setItem('stc_mahjong_progress', JSON.stringify(levelProgress));
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('debug_bridge') === 'true';
     } catch (e) {
-      console.warn('Could not save progress', e);
+      return false;
     }
-  }, [levelProgress]);
-
-  const level = LEVELS[currentLevelIndex];
+  });
 
   // Active (unmatched) tiles
   const activeTiles = useMemo(() => {
@@ -88,13 +116,17 @@ export default function App() {
   }, [activeTiles]);
 
   // Initialize level
-  const startLevel = useCallback((levelIdx) => {
-    const activeLevel = LEVELS[levelIdx];
+  const startLevel = useCallback((levelIdx, levelsList = levels) => {
+    const activeLevel = levelsList[levelIdx] || levelsList[0];
+    if (!activeLevel) return;
     
+    const questionsPool = activeLevel.questions || activeLevel.vocabularyPool || [];
+
     // Guaranteed solution-first puzzle
     const generatedTiles = generateSolutionFirstPuzzle(
       activeLevel.layout,
-      activeLevel.vocabularyPool
+      questionsPool,
+      levelIdx
     );
 
     setTiles(generatedTiles);
@@ -104,13 +136,50 @@ export default function App() {
     setMatchedIds([]);
     setJustUnlockedIds([]);
     setMoveHistory([]);
-    setMascotTip(activeLevel.mascotTip);
+    setMascotTip(activeLevel.mascotTip || '');
     setMascotMood('happy');
     setIsVictory(false);
     setTimer(0);
     setIsGameActive(true);
     setHintsRemaining(3);
-  }, []);
+  }, [levels]);
+
+  // Initialize Flutter Bridge & register incoming Flutter commands
+  useEffect(() => {
+    flutterBridge.init({
+      gameId: 'stc_grade3_mahjong',
+      gameTitle: 'Grade 3 Vocabulary Mahjong',
+      debug: Boolean(showBridgeDebug)
+    });
+
+    const unbindPause = flutterBridge.on('PAUSE', () => {
+      setShowPause(true);
+    });
+    const unbindResume = flutterBridge.on('RESUME', () => {
+      setShowPause(false);
+    });
+    const unbindRestart = flutterBridge.on('RESTART', () => {
+      setShowPause(false);
+      startLevel(currentLevelIndex);
+    });
+
+    return () => {
+      unbindPause();
+      unbindResume();
+      unbindRestart();
+    };
+  }, [currentLevelIndex, startLevel]);
+
+  // Save progress to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('stc_mahjong_progress', JSON.stringify(levelProgress));
+    } catch (e) {
+      console.warn('Could not save progress', e);
+    }
+  }, [levelProgress]);
+
+  const level = levels[currentLevelIndex] || levels[0] || DEFAULT_LEVELS[0];
 
   useEffect(() => {
     if (scene === 'GAME') {
@@ -118,15 +187,56 @@ export default function App() {
     }
   }, [currentLevelIndex, startLevel, scene]);
 
-  // Timer interval
+  // Auto-pause when tab/window is hidden or blurred (e.g. Flutter app backgrounded)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && scene === 'GAME' && isGameActive && !isVictory) {
+        setShowPause(true);
+      }
+    };
+    const handleBlur = () => {
+      if (scene === 'GAME' && isGameActive && !isVictory) {
+        setShowPause(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [scene, isGameActive, isVictory]);
+
+  // Timer interval with AFK auto-pause safeguard (auto-pauses if untouched for 3 minutes)
   useEffect(() => {
     let interval = null;
+    let lastActivityTime = Date.now();
+
+    const resetActivity = () => {
+      lastActivityTime = Date.now();
+    };
+
+    window.addEventListener('pointerdown', resetActivity);
+    window.addEventListener('keydown', resetActivity);
+
     if (isGameActive && !isVictory && !showPause && scene === 'GAME') {
       interval = setInterval(() => {
+        // If inactive for > 180 seconds, auto-pause
+        if (Date.now() - lastActivityTime > 180000) {
+          setShowPause(true);
+          return;
+        }
         setTimer((prev) => prev + 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('pointerdown', resetActivity);
+      window.removeEventListener('keydown', resetActivity);
+    };
   }, [isGameActive, isVictory, showPause, scene]);
 
   // Handle Tile Selection
@@ -199,9 +309,25 @@ export default function App() {
         setMascotMood('celebrating');
         setMascotTip('🎉 Outstanding work! You completed the entire Mahjong board!');
 
-        const earnedStars = timer < 60 ? 3 : timer < 120 ? 2 : 1;
+        // Dynamic star calculation based on level's specific layout size/depth
+        const starTimes = level.starTimes || { threeStars: 60, twoStars: 120 };
+        const earnedStars = timer <= starTimes.threeStars ? 3 : timer <= starTimes.twoStars ? 2 : 1;
+        
+        // Time bonus: Reward players for finishing well within target time
+        const timeBonus = timer < starTimes.threeStars ? Math.max(0, (starTimes.threeStars - timer) * 5) : 0;
+        const totalFinalScore = score + 100 + timeBonus;
+
+        setVictoryStats({
+          stars: earnedStars,
+          timeBonus,
+          finalScore: totalFinalScore
+        });
+
         const currentLvlId = level.id;
-        const nextLvlId = LEVELS[currentLevelIndex + 1]?.id;
+        const nextLvlId = levels[currentLevelIndex + 1]?.id;
+
+        // Dispatch LEVEL_COMPLETED event with score to Flutter
+        flutterBridge.sendLevelCompleted(totalFinalScore);
 
         setLevelProgress((prev) => {
           const prevLvl = prev[currentLvlId] || { stars: 0, highScore: 0, completed: false };
@@ -209,7 +335,7 @@ export default function App() {
             ...prev,
             [currentLvlId]: {
               stars: Math.max(prevLvl.stars, earnedStars),
-              highScore: Math.max(prevLvl.highScore, score + 100),
+              highScore: Math.max(prevLvl.highScore, totalFinalScore),
               completed: true
             }
           };
@@ -312,12 +438,13 @@ export default function App() {
     setMascotTip("✨ Solvable rearrangement complete! New free pairs are now open!");
   };
 
-  // Board layout bounds
-  const minX = Math.min(...level.layout.map((s) => s.x));
-  const maxX = Math.max(...level.layout.map((s) => s.x));
-  const minY = Math.min(...level.layout.map((s) => s.y));
-  const maxY = Math.max(...level.layout.map((s) => s.y));
-  const maxZ = Math.max(...level.layout.map((s) => s.z));
+  // Board layout bounds (safely resolved via built-in layouts or custom level.layout)
+  const currentLevelLayout = getLayoutForLevel(level, currentLevelIndex);
+  const minX = Math.min(...currentLevelLayout.map((s) => s.x));
+  const maxX = Math.max(...currentLevelLayout.map((s) => s.x));
+  const minY = Math.min(...currentLevelLayout.map((s) => s.y));
+  const maxY = Math.max(...currentLevelLayout.map((s) => s.y));
+  const maxZ = Math.max(...currentLevelLayout.map((s) => s.z));
 
   const boardWidth = (maxX - minX) * 86 + 184 + maxZ * 8;
   const boardHeight = (maxY - minY) * 106 + 230 + maxZ * 16;
@@ -374,6 +501,7 @@ export default function App() {
           />
 
           <LevelSelect
+            levels={levels}
             levelProgress={levelProgress}
             onSelectLevel={(levelIdx) => {
               setCurrentLevelIndex(levelIdx);
@@ -544,7 +672,7 @@ export default function App() {
                   TIME
                 </div>
                 <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
-                  {timer}s
+                  {formatTime(timer)}
                 </div>
               </div>
             </div>
@@ -772,12 +900,13 @@ export default function App() {
           {/* Victory Modal */}
           {isVictory && (
             <VictoryModal
-              score={score}
+              score={victoryStats.finalScore}
+              timeBonus={victoryStats.timeBonus}
               timeTaken={timer}
               levelId={level.id}
               levelTitle={level.title}
-              stars={timer < 60 ? 3 : timer < 120 ? 2 : 1}
-              hasNextLevel={currentLevelIndex < LEVELS.length - 1}
+              stars={victoryStats.stars}
+              hasNextLevel={currentLevelIndex < levels.length - 1}
               onNextLevel={() => {
                 const nextIdx = currentLevelIndex + 1;
                 setCurrentLevelIndex(nextIdx);
@@ -789,6 +918,11 @@ export default function App() {
             />
           )}
         </>
+      )}
+
+      {/* Flutter Bridge Developer Debug Inspector */}
+      {showBridgeDebug && (
+        <BridgeDebugOverlay onClose={() => setShowBridgeDebug(false)} />
       )}
     </AspectRatioContainer>
   );

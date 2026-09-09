@@ -188,39 +188,95 @@ export const Tile = ({
           )}
         </div>
 
-        {/* Central Illustration Icon */}
+        {/* Central Illustration: Image or Emoji */}
         <div
           style={{
-            fontSize: '64px',
-            opacity: iconOpacity,
-            filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.22))',
-            margin: '0',
-            lineHeight: 1,
-            transition: 'transform 0.2s ease'
-          }}
-        >
-          {tile.icon}
-        </div>
-
-        {/* Vocabulary Word Display - Extra Large, Bold & Kid-Friendly */}
-        <div
-          style={{
-            fontSize: wordFontSize,
-            fontWeight: '900',
-            color: textColor,
-            textAlign: 'center',
-            textTransform: 'capitalize',
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             width: '100%',
             overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            lineHeight: 1.1,
-            letterSpacing: '-0.4px',
-            fontFamily: "'Fredoka', sans-serif"
+            margin: '4px 0'
           }}
         >
-          {tile.word}
+          {(() => {
+            let iconSrc = tile.icon;
+            if (typeof iconSrc === 'string' && iconSrc.includes('drive.google.com')) {
+              const match = iconSrc.match(/\/d\/([a-zA-Z0-9_-]+)/) || iconSrc.match(/id=([a-zA-Z0-9_-]+)/);
+              if (match && match[1]) {
+                iconSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+              }
+            }
+
+            const isImage = typeof iconSrc === 'string' && (
+              iconSrc.startsWith('http://') ||
+              iconSrc.startsWith('https://') ||
+              iconSrc.startsWith('data:image/') ||
+              iconSrc.startsWith('/') ||
+              iconSrc.startsWith('assets/') ||
+              iconSrc.startsWith('images/') ||
+              /\.(png|jpe?g|svg|webp|gif)$/i.test(iconSrc)
+            );
+
+            if (isImage) {
+              return (
+                <img
+                  src={iconSrc}
+                  alt={tile.word || 'Tile visual'}
+                  style={{
+                    maxWidth: '120px',
+                    maxHeight: tile.word ? '90px' : '120px',
+                    objectFit: 'contain',
+                    borderRadius: '12px',
+                    opacity: iconOpacity,
+                    filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.18))',
+                    transition: 'transform 0.2s ease'
+                  }}
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              );
+            }
+
+            return (
+              <div
+                style={{
+                  fontSize: tile.word ? '64px' : '76px',
+                  opacity: iconOpacity,
+                  filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.22))',
+                  lineHeight: 1,
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                {tile.icon}
+              </div>
+            );
+          })()}
         </div>
+
+        {/* Vocabulary Word Display - Rendered if word exists */}
+        {tile.word ? (
+          <div
+            style={{
+              fontSize: wordFontSize,
+              fontWeight: '900',
+              color: textColor,
+              textAlign: 'center',
+              textTransform: 'capitalize',
+              width: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              lineHeight: 1.1,
+              letterSpacing: '-0.4px',
+              fontFamily: "'Fredoka', sans-serif"
+            }}
+          >
+            {tile.word}
+          </div>
+        ) : null}
 
         {/* Relation Tag Ribbon */}
         <div

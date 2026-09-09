@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { formatTime } from '../utils/timeFormatter';
 
 /**
  * Vibrant celebratory modal shown when children successfully clear all Mahjong pairs.
  */
 export const VictoryModal = ({
   score,
+  timeBonus = 0,
+  baseScore,
   stars = 3,
   timeTaken,
   levelId,
@@ -166,11 +169,19 @@ export const VictoryModal = ({
         >
           <div>
             <div style={{ fontSize: '20px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL SCORE</div>
-            <div style={{ fontSize: '44px', color: '#0284c7', fontWeight: '900' }}>{score}</div>
+            <div style={{ fontSize: '44px', color: '#0284c7', fontWeight: '900', lineHeight: '1.1' }}>{score}</div>
+            {timeBonus > 0 && (
+              <div style={{ fontSize: '13px', color: '#16a34a', fontWeight: '800', marginTop: '4px' }}>
+                +{timeBonus} Speed Bonus! ⚡
+              </div>
+            )}
           </div>
           <div>
             <div style={{ fontSize: '20px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TIME TAKEN</div>
-            <div style={{ fontSize: '44px', color: '#059669', fontWeight: '900' }}>{timeTaken}s</div>
+            <div style={{ fontSize: '44px', color: '#059669', fontWeight: '900', lineHeight: '1.1' }}>{formatTime(timeTaken)}</div>
+            <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', marginTop: '4px' }}>
+              {stars === 3 ? '🌟 3-Star Speed!' : stars === 2 ? '⭐ 2-Star Clear!' : '👍 Completed!'}
+            </div>
           </div>
         </div>
 

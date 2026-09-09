@@ -111,12 +111,97 @@ export function findSolvableHint(activeTiles) {
   return pairs[0];
 }
 
+// Built-in 3D Mahjong Solitaire Layout Templates
+export const BUILTIN_LAYOUTS = {
+  // 12-Tile Gentle Starter (Sunrise Peak - 2 layers)
+  starter_12: [
+    { x: 0, y: 1, z: 0 }, { x: 8, y: 1, z: 0 },
+    { x: 2, y: 1, z: 0 }, { x: 4, y: 1, z: 0 }, { x: 6, y: 1, z: 0 },
+    { x: 0, y: 3, z: 0 }, { x: 8, y: 3, z: 0 },
+    { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 6, y: 3, z: 0 },
+    { x: 3, y: 2, z: 1 }, { x: 5, y: 2, z: 1 }
+  ],
+  // 16-Tile Cross (Meadow - 2 layers)
+  cross_16: [
+    { x: 4, y: 0, z: 0 },
+    { x: 0, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 4, y: 2, z: 0 }, { x: 6, y: 2, z: 0 }, { x: 8, y: 2, z: 0 },
+    { x: 0, y: 4, z: 0 }, { x: 2, y: 4, z: 0 }, { x: 4, y: 4, z: 0 }, { x: 6, y: 4, z: 0 }, { x: 8, y: 4, z: 0 },
+    { x: 4, y: 6, z: 0 },
+    { x: 3, y: 2, z: 1 }, { x: 5, y: 2, z: 1 },
+    { x: 3, y: 4, z: 1 }, { x: 5, y: 4, z: 1 }
+  ],
+  // 20-Tile Bridge (Bridge & Towers - 2 layers)
+  bridge_20: [
+    { x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 0 },
+    { x: 0, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 4, y: 2, z: 0 }, { x: 6, y: 2, z: 0 }, { x: 8, y: 2, z: 0 },
+    { x: 0, y: 4, z: 0 }, { x: 2, y: 4, z: 0 }, { x: 4, y: 4, z: 0 }, { x: 6, y: 4, z: 0 }, { x: 8, y: 4, z: 0 },
+    { x: 0, y: 6, z: 0 }, { x: 8, y: 6, z: 0 },
+    { x: 4, y: 0, z: 0 }, { x: 4, y: 6, z: 0 },
+    { x: 2, y: 3, z: 1 }, { x: 4, y: 3, z: 1 }, { x: 6, y: 3, z: 1 },
+    { x: 4, y: 1, z: 1 }
+  ],
+  // 24-Tile Pagoda (Himalayan Temple - 3 layers)
+  pagoda_24: [
+    { x: 0, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 6, y: 3, z: 0 }, { x: 8, y: 3, z: 0 },
+    { x: 0, y: 1, z: 0 }, { x: 8, y: 1, z: 0 },
+    { x: 0, y: 5, z: 0 }, { x: 8, y: 5, z: 0 },
+    { x: 2, y: 1, z: 0 }, { x: 6, y: 1, z: 0 },
+    { x: 2, y: 5, z: 0 }, { x: 6, y: 5, z: 0 },
+    { x: 4, y: 1, z: 0 },
+    { x: 2, y: 2, z: 1 }, { x: 4, y: 2, z: 1 }, { x: 6, y: 2, z: 1 },
+    { x: 2, y: 4, z: 1 }, { x: 4, y: 4, z: 1 }, { x: 6, y: 4, z: 1 },
+    { x: 4, y: 0, z: 1 }, { x: 4, y: 6, z: 1 },
+    { x: 3, y: 3, z: 2 }, { x: 5, y: 3, z: 2 }
+  ],
+  // 28-Tile Mystic Dragon (Master Dragon - 3 layers)
+  dragon_28: [
+    { x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 0 },
+    { x: 2, y: 1, z: 0 }, { x: 6, y: 1, z: 0 },
+    { x: 0, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 4, y: 2, z: 0 }, { x: 6, y: 2, z: 0 }, { x: 8, y: 2, z: 0 },
+    { x: 0, y: 4, z: 0 }, { x: 2, y: 4, z: 0 }, { x: 4, y: 4, z: 0 }, { x: 6, y: 4, z: 0 }, { x: 8, y: 4, z: 0 },
+    { x: 2, y: 5, z: 0 }, { x: 6, y: 5, z: 0 },
+    { x: 0, y: 6, z: 0 }, { x: 8, y: 6, z: 0 },
+    { x: 2, y: 3, z: 1 }, { x: 6, y: 3, z: 1 },
+    { x: 4, y: 1, z: 1 }, { x: 4, y: 5, z: 1 },
+    { x: 3, y: 2, z: 1 }, { x: 5, y: 2, z: 1 },
+    { x: 3, y: 4, z: 1 }, { x: 5, y: 4, z: 1 },
+    { x: 4, y: 2, z: 2 }, { x: 4, y: 4, z: 2 }
+  ]
+};
+
+/**
+ * Returns an appropriate built-in layout template based on the available question/pair count or level index.
+ */
+export function getLayoutForLevel(levelData, levelIdx = 0) {
+  if (levelData?.layout && Array.isArray(levelData.layout) && levelData.layout.length >= 4) {
+    return levelData.layout;
+  }
+
+  const pool = levelData?.vocabularyPool || levelData?.questions || [];
+  const pairCount = pool.length;
+
+  if (pairCount >= 14 || levelIdx >= 4) return BUILTIN_LAYOUTS.dragon_28;
+  if (pairCount >= 12 || levelIdx === 3) return BUILTIN_LAYOUTS.pagoda_24;
+  if (pairCount >= 10 || levelIdx === 2) return BUILTIN_LAYOUTS.bridge_20;
+  if (pairCount >= 8 || levelIdx === 1) return BUILTIN_LAYOUTS.cross_16;
+  return BUILTIN_LAYOUTS.starter_12;
+}
+
 /**
  * Solution-First Puzzle Generator:
  * Generates and validates until finding a verified 100% solvable board.
  */
-export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool) {
-  const slotCount = layoutSlots.length;
+export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool, levelIdx = 0) {
+  const pool = Array.isArray(vocabularyPool) ? vocabularyPool : [];
+  if (pool.length === 0) {
+    throw new Error('vocabularyPool or questions array cannot be empty');
+  }
+
+  const slots = (layoutSlots && Array.isArray(layoutSlots) && layoutSlots.length > 0)
+    ? layoutSlots
+    : getLayoutForLevel({ vocabularyPool: pool }, levelIdx);
+
+  const slotCount = slots.length;
   if (slotCount % 2 !== 0) {
     throw new Error(`Mahjong layout slots count must be even (${slotCount})`);
   }
@@ -125,14 +210,14 @@ export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool) {
 
   while (true) {
     // 1. Pick unique vocabulary pairs from the pool
-    const shuffledVocab = [...vocabularyPool].sort(() => Math.random() - 0.5);
+    const shuffledVocab = [...pool].sort(() => Math.random() - 0.5);
     const chosenPairs = [];
     for (let i = 0; i < numPairsNeeded; i++) {
       chosenPairs.push(shuffledVocab[i % shuffledVocab.length]);
     }
 
     // 2. Track remaining slots on the board
-    let simulatedBoard = layoutSlots.map((s, idx) => ({
+    let simulatedBoard = slots.map((s, idx) => ({
       slotId: `slot_${idx}_${s.x}_${s.y}_${s.z}`,
       x: s.x,
       y: s.y,
