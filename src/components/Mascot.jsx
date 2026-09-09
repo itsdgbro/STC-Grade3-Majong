@@ -10,11 +10,11 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
       onClick={onClick}
       style={{
         position: 'absolute',
-        bottom: '110px',
-        left: '32px',
+        bottom: '18px',
+        left: '28px',
         display: 'flex',
         alignItems: 'flex-end',
-        gap: '20px',
+        gap: '16px',
         zIndex: 25,
         cursor: 'pointer',
         touchAction: 'manipulation',
@@ -88,23 +88,25 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
         </svg>
       </div>
 
-      {/* Speech Bubble - Generously Sized & Clear */}
+      {/* Speech Bubble - Compact, Glassmorphic & Transparent */}
       <div
         style={{
-          background: '#ffffff',
-          borderRadius: '28px',
-          padding: '22px 34px',
-          maxWidth: '500px',
-          boxShadow: '0 12px 34px rgba(0, 0, 0, 0.3)',
-          border: '5px solid #facc15',
+          background: 'rgba(255, 255, 255, 0.45)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          borderRadius: '24px',
+          padding: '14px 24px',
+          maxWidth: '460px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
+          border: '3px solid rgba(250, 204, 21, 0.7)',
           position: 'relative',
-          marginBottom: '16px'
+          marginBottom: '6px'
         }}
       >
-        <div style={{ fontSize: '20px', fontWeight: '900', color: '#d97706', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+        <div style={{ fontSize: '17px', fontWeight: '900', color: '#b45309', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
           🐾 Pema says:
         </div>
-        <div style={{ fontSize: '25px', fontWeight: '800', color: '#1e293b', lineHeight: '1.35', fontFamily: "'Fredoka', sans-serif" }}>
+        <div style={{ fontSize: '21px', fontWeight: '900', color: '#0f172a', lineHeight: '1.3', fontFamily: "'Fredoka', sans-serif" }}>
           {tip || 'Match the word pairs to clear the board!'}
         </div>
         {/* Tail pointing to avatar */}
@@ -112,12 +114,12 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
           style={{
             position: 'absolute',
             bottom: '24px',
-            left: '-18px',
+            left: '-16px',
             width: '0',
             height: '0',
-            borderTop: '13px solid transparent',
-            borderBottom: '13px solid transparent',
-            borderRight: '20px solid #facc15'
+            borderTop: '12px solid transparent',
+            borderBottom: '12px solid transparent',
+            borderRight: '16px solid rgba(250, 204, 21, 0.7)'
           }}
         />
         <div
@@ -127,9 +129,9 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
             left: '-11px',
             width: '0',
             height: '0',
-            borderTop: '11px solid transparent',
-            borderBottom: '11px solid transparent',
-            borderRight: '15px solid #ffffff'
+            borderTop: '10px solid transparent',
+            borderBottom: '10px solid transparent',
+            borderRight: '13px solid rgba(255, 255, 255, 0.45)'
           }}
         />
       </div>
