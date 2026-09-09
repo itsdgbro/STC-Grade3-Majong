@@ -41,6 +41,7 @@ export default function App() {
   const [round, setRound] = useState(1);
   const [failedQuestionIds, setFailedQuestionIds] = useState(new Set());
   const [retriedQuestionIds, setRetriedQuestionIds] = useState(new Set());
+  const [masteredQuestionIds, setMasteredQuestionIds] = useState(new Set());
   const [usedQuestionIds, setUsedQuestionIds] = useState(new Set());
   const [roundTransitionBanner, setRoundTransitionBanner] = useState(null); // e.g. "Round 2"
 
@@ -53,11 +54,12 @@ export default function App() {
   const [justUnlockedIds, setJustUnlockedIds] = useState([]);
   const [moveHistory, setMoveHistory] = useState([]);
   const [score, setScore] = useState(0);
+  const [xp, setXp] = useState(0);
   const [hintsRemaining, setHintsRemaining] = useState(3);
   const [mascotTip, setMascotTip] = useState('');
   const [mascotMood, setMascotMood] = useState('happy');
   const [isVictory, setIsVictory] = useState(false);
-  const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0 });
+  const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0, finalXp: 0 });
   const [timer, setTimer] = useState(0);
   const [isGameActive, setIsGameActive] = useState(false);
 
@@ -186,8 +188,10 @@ export default function App() {
       currentUsed = new Set();
       setFailedQuestionIds(new Set());
       setRetriedQuestionIds(new Set());
+      setMasteredQuestionIds(new Set());
       setUsedQuestionIds(new Set());
       setScore(0);
+      setXp(0);
       setTimer(0);
     }
 
@@ -308,8 +312,9 @@ export default function App() {
     window.addEventListener('keydown', resetActivity);
 
     if (isGameActive && !isVictory && !showPause && scene === 'GAME') {
+      const afkTimeoutMs = (GAME_CONFIG.AFK_COOLDOWN_SECONDS || 30) * 1000;
       interval = setInterval(() => {
-        if (Date.now() - lastActivityTime > 180000) {
+        if (Date.now() - lastActivityTime >= afkTimeoutMs) {
           setShowPause(true);
           return;
         }
@@ -376,7 +381,27 @@ export default function App() {
       setSelectedTileId(null);
       setHintedPairIds([]);
       setScore((prev) => prev + 100);
+      setXp((prev) => prev + 100);
       setMascotMood('correct');
+
+      // Extract raw question ID (e.g. from pair_0_e1 -> e1)
+      const rawQuestionId = tile.pairId.replace(/^pair_\d+_/, '');
+
+      // Check if this was a previously failed/retried question that is now mastered!
+      let wasRetry = false;
+      if (failedQuestionIds.has(rawQuestionId)) {
+        wasRetry = true;
+        setFailedQuestionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(rawQuestionId);
+          return next;
+        });
+        setMasteredQuestionIds((prev) => {
+          const next = new Set(prev);
+          next.add(rawQuestionId);
+          return next;
+        });
+      }
 
       // Calculate newly uncovered tiles
       const nextActiveTiles = tiles.filter((t) => !newMatched.includes(t.id));
@@ -386,12 +411,32 @@ export default function App() {
         .map((t) => t.id);
 
       const pairName = (firstTile.word || firstTile.partnerWord || tile.word || tile.partnerWord);
-      if (newlyFreed.length > 0) {
+      const educationalHint = firstTile.hint || tile.hint;
+      
+      if (wasRetry) {
+        setMascotMood('celebrating');
+        if (educationalHint) {
+          setMascotTip(`🌟 Mastered "${pairName}"! (+100 XP) 💡 ${educationalHint}`);
+        } else {
+          setMascotTip(`🌟 Amazing mastery! You solved "${pairName}" correctly! (+100 XP)`);
+        }
+        audio.speakWord(`Great job! You mastered ${pairName}! ${educationalHint || ''}`);
+      } else if (newlyFreed.length > 0) {
         setJustUnlockedIds(newlyFreed);
         setTimeout(() => setJustUnlockedIds([]), 900);
-        setMascotTip(`Brilliant! "${pairName}" matched! ✨`);
+        if (educationalHint) {
+          setMascotTip(`✨ "${pairName}" matched! (+100 XP) 💡 ${educationalHint}`);
+        } else {
+          setMascotTip(`Brilliant! "${pairName}" matched! (+100 XP) ✨`);
+        }
+        audio.speakWord(`${pairName}. ${educationalHint || ''}`);
       } else {
-        setMascotTip(`Superb! "${pairName}" is a correct match! ✨`);
+        if (educationalHint) {
+          setMascotTip(`✨ "${pairName}" matched! (+100 XP) 💡 ${educationalHint}`);
+        } else {
+          setMascotTip(`Superb! "${pairName}" is a correct match! (+100 XP) ✨`);
+        }
+        audio.speakWord(`${pairName}. ${educationalHint || ''}`);
       }
 
       // Check Round or Game Victory
@@ -417,11 +462,13 @@ export default function App() {
           const earnedStars = timer <= starTimes.threeStars ? 3 : timer <= starTimes.twoStars ? 2 : 1;
           const timeBonus = timer < starTimes.threeStars ? Math.max(0, (starTimes.threeStars - timer) * 5) : 0;
           const totalFinalScore = score + 100 + timeBonus;
+          const totalFinalXp = xp + 100;
 
           setVictoryStats({
             stars: earnedStars,
             timeBonus,
-            finalScore: totalFinalScore
+            finalScore: totalFinalScore,
+            finalXp: totalFinalXp
           });
 
           // Dispatch LEVEL_COMPLETED event to Flutter
@@ -429,15 +476,32 @@ export default function App() {
         }
       }
     } else {
-      // Mismatch - Track failed question for learning personalization in next round!
+      // Mismatch - Penalize XP (-5, min 0), Pedagogical Scaffolding & Adaptive Failure Tracking
       audio.playMismatch();
       setMismatchedIds([firstTile.id, tile.id]);
-      setMascotMood('happy');
-      const w1 = firstTile.word || firstTile.partnerWord;
-      const w2 = tile.word || tile.partnerWord;
-      setMascotTip(`"${w1}" and "${w2}" are not a pair. Try again!`);
+      setMascotMood('thinking');
+      setXp((prev) => Math.max(0, prev - 5));
 
-      // Extract raw question ID (e.g. from pair_0_e1 -> e1)
+      const w1 = firstTile.word || firstTile.partnerWord || 'item';
+      const w2 = tile.word || tile.partnerWord || 'item';
+
+      // Pedagogical Contextual Scaffolding Hint Generation:
+      let feedbackTip = '';
+      if (firstTile.relation && tile.relation && firstTile.relation === tile.relation) {
+        // Both tiles share the same category (e.g. Opposites or Nature)
+        feedbackTip = `🤔 "${w1}" and "${w2}" are both ${firstTile.relation}, but not a matching pair. Look for ${w1}'s partner! (-5 XP)`;
+      } else if (firstTile.hint) {
+        // Provide educational clue from the first tile's metadata
+        feedbackTip = `💡 Clue for "${w1}": ${firstTile.hint} (-5 XP)`;
+      } else if (firstTile.relation) {
+        feedbackTip = `🤔 "${w1}" (${firstTile.relation}) and "${w2}" do not match. Try pairing "${w1}" with its ${firstTile.relation} partner! (-5 XP)`;
+      } else {
+        feedbackTip = `"${w1}" and "${w2}" are not a pair. Check the pictures and words carefully! (-5 XP)`;
+      }
+
+      setMascotTip(feedbackTip);
+
+      // Extract raw question IDs for adaptive learning spaced repetition
       const rawFirstId = firstTile.pairId.replace(/^pair_\d+_/, '');
       const rawSecondId = tile.pairId.replace(/^pair_\d+_/, '');
 
@@ -448,10 +512,11 @@ export default function App() {
         return next;
       });
 
+      // Clear selection after feedback duration
       setTimeout(() => {
         setMismatchedIds([]);
         setSelectedTileId(null);
-      }, 500);
+      }, 700);
     }
   };
 
@@ -468,8 +533,14 @@ export default function App() {
       audio.playHint();
       setHintedPairIds([tileA.id, tileB.id]);
       setHintsRemaining((prev) => prev - 1);
-      setMascotTip(`💡 Hint: "${tileA.word}" ↔ "${tileB.word}" (${tileA.relation}) are free to match!`);
-      audio.speakWord(`${tileA.word} and ${tileB.word}`);
+      
+      const educationalTip = tileA.hint || tileB.hint;
+      if (educationalTip) {
+        setMascotTip(`💡 "${tileA.word || tileA.partnerWord}" ↔ "${tileB.word || tileB.partnerWord}": ${educationalTip}`);
+      } else {
+        setMascotTip(`💡 Hint: "${tileA.word || tileA.partnerWord}" ↔ "${tileB.word || tileB.partnerWord}" (${tileA.relation}) are free to match!`);
+      }
+      audio.speakWord(`${tileA.word || tileA.partnerWord} and ${tileB.word || tileB.partnerWord}`);
     } else {
       setMascotTip("No direct moves left on the open sides. Click 'Smart Reorder' to continue!");
     }
@@ -484,6 +555,7 @@ export default function App() {
     setSelectedTileId(null);
     setHintedPairIds([]);
     setScore((prev) => Math.max(0, prev - 100));
+    setXp((prev) => Math.max(0, prev - 100));
     setMascotTip("↩️ Move undone! Plan your removal order carefully!");
   };
 
@@ -680,33 +752,8 @@ export default function App() {
               boxSizing: 'border-box'
             }}
           >
-            {/* Center: Objective / Round Progress Banner */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '22px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(255, 255, 255, 0.98)',
-                padding: '14px 38px',
-                borderRadius: '50px',
-                border: '4px solid #facc15',
-                boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                maxWidth: '750px',
-                zIndex: 82
-              }}
-            >
-              <span style={{ fontSize: '32px' }}>🎯</span>
-              <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
-                Round {round} of {TOTAL_ROUNDS} • Match {PAIRS_PER_ROUND} Pairs!
-              </span>
-            </div>
-
-            {/* Right: Essential HUD (Round, Open Pairs, Score, Time) */}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82 }}>
+            {/* Left: Round & Open Pairs (positioned next to the pause/settings toolbar buttons) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82, marginLeft: '215px' }}>
               <div
                 style={{
                   width: '135px',
@@ -745,6 +792,81 @@ export default function App() {
                 </div>
                 <div style={{ fontSize: '26px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
                   {availableFreePairs.length}
+                </div>
+              </div>
+            </div>
+
+            {/* Center: Objective / Round Progress Banner */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '22px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(255, 255, 255, 0.98)',
+                padding: '14px 38px',
+                borderRadius: '50px',
+                border: '4px solid #facc15',
+                boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '14px',
+                maxWidth: '750px',
+                zIndex: 82
+              }}
+            >
+              <span style={{ fontSize: '32px' }}>🎯</span>
+              <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
+                Round {round} of {TOTAL_ROUNDS} • Match {PAIRS_PER_ROUND} Pairs!
+              </span>
+            </div>
+
+            {/* Right: Essential HUD (XP Bar, Score, Time) */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82 }}>
+              {/* XP System Widget */}
+              <div
+                style={{
+                  minWidth: '180px',
+                  boxSizing: 'border-box',
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                  padding: '8px 14px',
+                  borderRadius: '20px',
+                  boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
+                  border: '3px solid #c4b5fd',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '3px'
+                }}
+                title={`Experience Points: ${xp} XP (Level ${Math.floor(xp / 300) + 1})`}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '900', color: '#ede9fe', letterSpacing: '0.8px' }}>
+                    ⚡ LV {Math.floor(xp / 300) + 1}
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: '900', color: '#fef08a', fontVariantNumeric: 'tabular-nums' }}>
+                    {xp} XP
+                  </div>
+                </div>
+                {/* XP Level Progress Bar */}
+                <div
+                  style={{
+                    width: '100%',
+                    height: '10px',
+                    background: 'rgba(0, 0, 0, 0.25)',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.min(100, ((xp % 300) / 300) * 100)}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #facc15 0%, #fbbf24 100%)',
+                      borderRadius: '8px',
+                      transition: 'width 0.35s ease'
+                    }}
+                  />
                 </div>
               </div>
 
@@ -905,29 +1027,32 @@ export default function App() {
                   style={{
                     background: moveHistory.length > 0 ? '#3b82f6' : '#94a3b8',
                     color: '#ffffff',
-                    padding: '16px 30px',
+                    padding: '16px 34px',
                     borderRadius: '20px',
                     fontWeight: '900',
-                    fontSize: '22px',
+                    fontSize: '26px',
+                    letterSpacing: '0.6px',
                     boxShadow: '0 4px 16px rgba(59, 130, 246, 0.4)',
                     cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  ↩️ Undo Move
+                  UNDO MOVE
                 </button>
                 <button
                   onClick={handleSmartReorder}
                   style={{
                     background: '#10b981',
                     color: '#ffffff',
-                    padding: '16px 30px',
+                    padding: '16px 34px',
                     borderRadius: '20px',
                     fontWeight: '900',
-                    fontSize: '22px',
-                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)'
+                    fontSize: '26px',
+                    letterSpacing: '0.6px',
+                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
+                    cursor: 'pointer'
                   }}
                 >
-                  ✨ Smart Re-Order
+                  SMART RE-ORDER
                 </button>
               </div>
             </div>
@@ -950,20 +1075,21 @@ export default function App() {
               style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: '#ffffff',
-                padding: '18px 28px',
+                padding: '18px 34px',
                 borderRadius: '24px',
                 border: '4px solid #fde68a',
                 boxShadow: '0 8px 26px rgba(217, 119, 6, 0.48)',
                 display: 'flex',
+                justifyContent: 'center',
                 alignItems: 'center',
-                gap: '14px',
-                fontSize: '24px',
+                fontSize: '30px',
                 fontWeight: '900',
-                cursor: 'pointer'
+                letterSpacing: '0.8px',
+                cursor: 'pointer',
+                textAlign: 'center'
               }}
             >
-              <span style={{ fontSize: '30px' }}>💡</span>
-              <span>Hint ({hintsRemaining})</span>
+              <span>HINT ({hintsRemaining})</span>
             </button>
 
             <button
@@ -972,20 +1098,21 @@ export default function App() {
               style={{
                 background: moveHistory.length > 0 ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '#94a3b8',
                 color: '#ffffff',
-                padding: '18px 28px',
+                padding: '18px 34px',
                 borderRadius: '24px',
                 border: `4px solid ${moveHistory.length > 0 ? '#93c5fd' : '#cbd5e1'}`,
                 boxShadow: '0 8px 26px rgba(59, 130, 246, 0.4)',
                 display: 'flex',
+                justifyContent: 'center',
                 alignItems: 'center',
-                gap: '14px',
-                fontSize: '24px',
+                fontSize: '30px',
                 fontWeight: '900',
-                cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed'
+                letterSpacing: '0.8px',
+                cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed',
+                textAlign: 'center'
               }}
             >
-              <span style={{ fontSize: '30px' }}>↩️</span>
-              <span>Undo</span>
+              <span>UNDO</span>
             </button>
           </div>
 
@@ -1054,6 +1181,7 @@ export default function App() {
           {isVictory && (
             <VictoryModal
               score={victoryStats.finalScore}
+              xp={victoryStats.finalXp || xp}
               timeBonus={victoryStats.timeBonus}
               timeTaken={timer}
               levelTitle="Himalayan Word Mahjong"

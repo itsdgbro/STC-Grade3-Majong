@@ -124,7 +124,6 @@ export const MainMenu = ({
             e.currentTarget.style.boxShadow = '0 16px 50px rgba(34, 197, 94, 0.65), 0 0 40px rgba(34, 197, 94, 0.4)';
           }}
         >
-          <span style={{ fontSize: '50px' }}>▶️</span>
           <span>PLAY GAME</span>
         </button>
       </div>

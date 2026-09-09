@@ -322,6 +322,7 @@ export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool, levelId
         word: tileAWord,
         icon: tileAIcon,
         relation: vocab.relation,
+        hint: vocab.hint || '',
         partnerWord: tileBWord || vocab.word1 || vocab.word2
       };
 
@@ -334,6 +335,7 @@ export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool, levelId
         word: tileBWord,
         icon: tileBIcon,
         relation: vocab.relation,
+        hint: vocab.hint || '',
         partnerWord: tileAWord || vocab.word1 || vocab.word2
       };
 

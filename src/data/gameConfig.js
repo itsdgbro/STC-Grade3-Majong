@@ -15,7 +15,7 @@ export const GAME_CONFIG = {
   // 10 pairs = 20 tiles
   // 12 pairs = 24 tiles
   // 14 pairs = 28 tiles
-  PAIRS_PER_ROUND: 3,
+  PAIRS_PER_ROUND: 8,
 
   // Tile Sizing & Dimensions
   TILE_SIZE: {
@@ -41,6 +41,10 @@ export const GAME_CONFIG = {
   HINTS_PER_ROUND: 3,
 
   // Points awarded per correct match
-  SCORE_PER_MATCH: 100
+  SCORE_PER_MATCH: 100,
+
+  // AFK Idle cooldown timeout in seconds before auto-pausing (e.g. 30 seconds)
+  AFK_COOLDOWN_SECONDS: 30
 };
+
 

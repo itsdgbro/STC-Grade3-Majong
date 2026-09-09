@@ -6,6 +6,7 @@ import { formatTime } from '../utils/timeFormatter';
  */
 export const VictoryModal = ({
   score,
+  xp,
   timeBonus = 0,
   baseScore,
   stars = 3,
@@ -149,21 +150,21 @@ export const VictoryModal = ({
           ))}
         </div>
 
-        {/* Score & Time Summary */}
+        {/* Score, XP & Time Summary */}
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '24px',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '18px',
             margin: '28px 0',
             background: '#f1f5f9',
-            padding: '22px 36px',
+            padding: '22px 28px',
             borderRadius: '26px'
           }}
         >
           <div>
-            <div style={{ fontSize: '20px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL SCORE</div>
-            <div style={{ fontSize: '44px', color: '#0284c7', fontWeight: '900', lineHeight: '1.1' }}>{score}</div>
+            <div style={{ fontSize: '18px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL SCORE</div>
+            <div style={{ fontSize: '40px', color: '#0284c7', fontWeight: '900', lineHeight: '1.1' }}>{score}</div>
             {timeBonus > 0 && (
               <div style={{ fontSize: '13px', color: '#16a34a', fontWeight: '800', marginTop: '4px' }}>
                 +{timeBonus} Speed Bonus! ⚡
@@ -171,8 +172,15 @@ export const VictoryModal = ({
             )}
           </div>
           <div>
-            <div style={{ fontSize: '20px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL TIME</div>
-            <div style={{ fontSize: '44px', color: '#059669', fontWeight: '900', lineHeight: '1.1' }}>{formatTime(timeTaken)}</div>
+            <div style={{ fontSize: '18px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>XP EARNED</div>
+            <div style={{ fontSize: '40px', color: '#7c3aed', fontWeight: '900', lineHeight: '1.1' }}>{xp ?? score}</div>
+            <div style={{ fontSize: '13px', color: '#6d28d9', fontWeight: '800', marginTop: '4px' }}>
+              ⚡ Level {Math.floor((xp ?? score) / 300) + 1}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '18px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL TIME</div>
+            <div style={{ fontSize: '40px', color: '#059669', fontWeight: '900', lineHeight: '1.1' }}>{formatTime(timeTaken)}</div>
             <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', marginTop: '4px' }}>
               {stars === 3 ? '🌟 3-Star Mastery!' : stars === 2 ? '⭐ 2-Star Great Job!' : '👍 Good Effort!'}
             </div>

@@ -55,6 +55,14 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
               <path d="M 40,48 Q 48,40 54,48" fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
               <path d="M 66,48 Q 72,40 80,48" fill="none" stroke="#0f172a" strokeWidth="4" strokeLinecap="round" />
             </>
+          ) : mood === 'thinking' ? (
+            <>
+              {/* Curious / Thinking eyes looking up */}
+              <circle cx="47" cy="46" r="7.5" fill="#0f172a" />
+              <circle cx="73" cy="46" r="7.5" fill="#0f172a" />
+              <circle cx="48" cy="42" r="3" fill="#ffffff" />
+              <circle cx="74" cy="42" r="3" fill="#ffffff" />
+            </>
           ) : (
             <>
               {/* Big sparkly curious eyes */}
@@ -88,25 +96,25 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
         </svg>
       </div>
 
-      {/* Speech Bubble - Compact, Glassmorphic & Transparent */}
+      {/* Speech Bubble - Glassmorphic, High Readability */}
       <div
         style={{
-          background: 'rgba(255, 255, 255, 0.45)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          borderRadius: '24px',
-          padding: '14px 24px',
-          maxWidth: '460px',
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.18)',
-          border: '3px solid rgba(250, 204, 21, 0.7)',
+          background: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderRadius: '26px',
+          padding: '16px 28px',
+          maxWidth: '560px',
+          boxShadow: '0 10px 28px rgba(0, 0, 0, 0.22)',
+          border: '3.5px solid #facc15',
           position: 'relative',
           marginBottom: '6px'
         }}
       >
-        <div style={{ fontSize: '17px', fontWeight: '900', color: '#b45309', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.8px', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
+        <div style={{ fontSize: '22px', fontWeight: '900', color: '#b45309', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.9px', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
           🐾 Pema says:
         </div>
-        <div style={{ fontSize: '21px', fontWeight: '900', color: '#0f172a', lineHeight: '1.3', fontFamily: "'Fredoka', sans-serif" }}>
+        <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', lineHeight: '1.35', fontFamily: "'Fredoka', sans-serif" }}>
           {tip || 'Match the word pairs to clear the board!'}
         </div>
         {/* Tail pointing to avatar */}
