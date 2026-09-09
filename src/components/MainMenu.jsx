@@ -6,6 +6,9 @@ import { audio } from '../utils/audio';
  * Displays only the game title, subtitle, and prominent "Play Game" button in the center.
  */
 export const MainMenu = ({
+  headerBadge = "SAVE THE CHILDREN • GRADE 3 ENGLISH",
+  title = "Himalayan Word Mahjong",
+  subtitle = "हिमाली शब्द माजोङ",
   onPlay
 }) => {
   return (
@@ -38,24 +41,26 @@ export const MainMenu = ({
         }}
       >
         {/* Nepal Flag & Grade Badge */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            background: 'rgba(255, 255, 255, 0.98)',
-            padding: '12px 36px',
-            borderRadius: '50px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-            border: '4px solid #facc15',
-            marginBottom: '28px'
-          }}
-        >
-          <span style={{ fontSize: '32px' }}>🇳🇵</span>
-          <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', letterSpacing: '1px' }}>
-            SAVE THE CHILDREN • GRADE 3 ENGLISH
-          </span>
-        </div>
+        {headerBadge && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              background: 'rgba(255, 255, 255, 0.98)',
+              padding: '12px 36px',
+              borderRadius: '50px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+              border: '4px solid #facc15',
+              marginBottom: '28px'
+            }}
+          >
+            <span style={{ fontSize: '32px' }}>🇳🇵</span>
+            <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', letterSpacing: '1px' }}>
+              {headerBadge}
+            </span>
+          </div>
+        )}
 
         {/* Big Game Title */}
         <h1
@@ -70,21 +75,23 @@ export const MainMenu = ({
             fontFamily: "'Fredoka', sans-serif"
           }}
         >
-          Himalayan Word Mahjong
+          {title}
         </h1>
 
         {/* Subtitle */}
-        <div
-          style={{
-            fontSize: '34px',
-            fontWeight: '800',
-            color: '#fef08a',
-            textShadow: '0 4px 12px rgba(0,0,0,0.85)',
-            marginBottom: '54px'
-          }}
-        >
-          हिमाली शब्द माजोङ
-        </div>
+        {subtitle && (
+          <div
+            style={{
+              fontSize: '34px',
+              fontWeight: '800',
+              color: '#fef08a',
+              textShadow: '0 4px 12px rgba(0,0,0,0.85)',
+              marginBottom: '54px'
+            }}
+          >
+            {subtitle}
+          </div>
+        )}
 
         {/* Center Prominent Play Game Button */}
         <button

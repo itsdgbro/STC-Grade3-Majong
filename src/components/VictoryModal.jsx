@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { formatTime } from '../utils/timeFormatter';
 
 /**
- * Vibrant celebratory modal shown when children successfully clear all Mahjong pairs.
+ * Vibrant celebratory modal shown when children successfully clear all 3 rounds.
  */
 export const VictoryModal = ({
   score,
@@ -10,13 +10,9 @@ export const VictoryModal = ({
   baseScore,
   stars = 3,
   timeTaken,
-  levelId,
-  levelTitle,
-  onNextLevel,
+  levelTitle = 'Word Mahjong',
   onReplay,
-  onLevelMap,
-  onHome,
-  hasNextLevel
+  onHome
 }) => {
   const [confetti, setConfetti] = useState([]);
 
@@ -112,29 +108,27 @@ export const VictoryModal = ({
           🎉 Shabbash! Outstanding! 🎉
         </div>
 
-        {/* Level Label & Name */}
+        {/* Title & 3 Sessions Completed Badge */}
         <div style={{ marginTop: '30px' }}>
-          {levelId && (
-            <div
-              style={{
-                display: 'inline-block',
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                color: '#ffffff',
-                padding: '6px 20px',
-                borderRadius: '16px',
-                fontSize: '20px',
-                fontWeight: '900',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                marginBottom: '8px',
-                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.35)'
-              }}
-            >
-              Level {levelId}
-            </div>
-          )}
+          <div
+            style={{
+              display: 'inline-block',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              padding: '8px 24px',
+              borderRadius: '20px',
+              fontSize: '20px',
+              fontWeight: '900',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              marginBottom: '10px',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
+            }}
+          >
+            ✨ All 3 Rounds Completed!
+          </div>
           <div style={{ fontSize: '32px', fontWeight: '900', color: '#1e293b', fontFamily: "'Fredoka', sans-serif" }}>
-            {levelTitle} Complete!
+            {levelTitle}
           </div>
         </div>
 
@@ -177,18 +171,18 @@ export const VictoryModal = ({
             )}
           </div>
           <div>
-            <div style={{ fontSize: '20px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TIME TAKEN</div>
+            <div style={{ fontSize: '20px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL TIME</div>
             <div style={{ fontSize: '44px', color: '#059669', fontWeight: '900', lineHeight: '1.1' }}>{formatTime(timeTaken)}</div>
             <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', marginTop: '4px' }}>
-              {stars === 3 ? '🌟 3-Star Speed!' : stars === 2 ? '⭐ 2-Star Clear!' : '👍 Completed!'}
+              {stars === 3 ? '🌟 3-Star Mastery!' : stars === 2 ? '⭐ 2-Star Great Job!' : '👍 Good Effort!'}
             </div>
           </div>
         </div>
 
         {/* Action Buttons - Horizontal row without icons */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px', marginTop: '38px', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '38px', width: '100%' }}>
           <button
-            onClick={onLevelMap}
+            onClick={onHome}
             style={{
               flex: 1,
               background: '#0284c7',
@@ -202,56 +196,36 @@ export const VictoryModal = ({
               justifyContent: 'center',
               alignItems: 'center',
               textAlign: 'center',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              border: 'none'
             }}
           >
-            Levels
+            Main Menu
           </button>
 
           <button
             onClick={onReplay}
             style={{
-              flex: 1,
-              background: '#e2e8f0',
-              color: '#1e293b',
-              padding: '18px 20px',
+              flex: 1.2,
+              background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+              color: '#ffffff',
+              padding: '18px 24px',
               borderRadius: '24px',
-              fontSize: '22px',
+              fontSize: '24px',
               fontWeight: '900',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+              boxShadow: '0 8px 28px rgba(34, 197, 94, 0.45)',
+              border: '3.5px solid #bbf7d0',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               textAlign: 'center',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              cursor: 'pointer'
             }}
           >
-            Replay
+            Play Again
           </button>
-
-          {hasNextLevel && (
-            <button
-              onClick={onNextLevel}
-              style={{
-                flex: 1.2,
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                color: '#ffffff',
-                padding: '18px 24px',
-                borderRadius: '24px',
-                fontSize: '24px',
-                fontWeight: '900',
-                boxShadow: '0 8px 28px rgba(34, 197, 94, 0.45)',
-                border: '3.5px solid #bbf7d0',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                textAlign: 'center',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Next Level
-            </button>
-          )}
         </div>
       </div>
     </div>

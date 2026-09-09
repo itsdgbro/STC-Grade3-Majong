@@ -113,7 +113,22 @@ export function findSolvableHint(activeTiles) {
 
 // Built-in 3D Mahjong Solitaire Layout Templates
 export const BUILTIN_LAYOUTS = {
-  // 12-Tile Gentle Starter (Sunrise Peak - 2 layers)
+  // 4-Tile Session Layout (2 pairs: 2x2 grid)
+  session_4: [
+    { x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 },
+    { x: 0, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }
+  ],
+  // 6-Tile Session Layout (3 pairs: 2x3 grid where 4 outer tiles are free and 2 center tiles are locked between them)
+  session_6: [
+    { x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, { x: 4, y: 1, z: 0 },
+    { x: 0, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }
+  ],
+  // 8-Tile Session Layout (4 pairs: 2x4 grid)
+  session_8: [
+    { x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, { x: 4, y: 1, z: 0 }, { x: 6, y: 1, z: 0 },
+    { x: 0, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 6, y: 3, z: 0 }
+  ],
+  // 12-Tile Gentle Starter (6 pairs - 2 layers)
   starter_12: [
     { x: 0, y: 1, z: 0 }, { x: 8, y: 1, z: 0 },
     { x: 2, y: 1, z: 0 }, { x: 4, y: 1, z: 0 }, { x: 6, y: 1, z: 0 },
@@ -121,7 +136,7 @@ export const BUILTIN_LAYOUTS = {
     { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 6, y: 3, z: 0 },
     { x: 3, y: 2, z: 1 }, { x: 5, y: 2, z: 1 }
   ],
-  // 16-Tile Cross (Meadow - 2 layers)
+  // 16-Tile Cross (8 pairs - 2 layers)
   cross_16: [
     { x: 4, y: 0, z: 0 },
     { x: 0, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 4, y: 2, z: 0 }, { x: 6, y: 2, z: 0 }, { x: 8, y: 2, z: 0 },
@@ -130,7 +145,7 @@ export const BUILTIN_LAYOUTS = {
     { x: 3, y: 2, z: 1 }, { x: 5, y: 2, z: 1 },
     { x: 3, y: 4, z: 1 }, { x: 5, y: 4, z: 1 }
   ],
-  // 20-Tile Bridge (Bridge & Towers - 2 layers)
+  // 20-Tile Bridge (10 pairs - 2 layers)
   bridge_20: [
     { x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 0 },
     { x: 0, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 4, y: 2, z: 0 }, { x: 6, y: 2, z: 0 }, { x: 8, y: 2, z: 0 },
@@ -140,7 +155,7 @@ export const BUILTIN_LAYOUTS = {
     { x: 2, y: 3, z: 1 }, { x: 4, y: 3, z: 1 }, { x: 6, y: 3, z: 1 },
     { x: 4, y: 1, z: 1 }
   ],
-  // 24-Tile Pagoda (Himalayan Temple - 3 layers)
+  // 24-Tile Pagoda (12 pairs - 3 layers)
   pagoda_24: [
     { x: 0, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 4, y: 3, z: 0 }, { x: 6, y: 3, z: 0 }, { x: 8, y: 3, z: 0 },
     { x: 0, y: 1, z: 0 }, { x: 8, y: 1, z: 0 },
@@ -153,7 +168,7 @@ export const BUILTIN_LAYOUTS = {
     { x: 4, y: 0, z: 1 }, { x: 4, y: 6, z: 1 },
     { x: 3, y: 3, z: 2 }, { x: 5, y: 3, z: 2 }
   ],
-  // 28-Tile Mystic Dragon (Master Dragon - 3 layers)
+  // 28-Tile Mystic Dragon (14 pairs - 3 layers)
   dragon_28: [
     { x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 0 },
     { x: 2, y: 1, z: 0 }, { x: 6, y: 1, z: 0 },
@@ -170,7 +185,21 @@ export const BUILTIN_LAYOUTS = {
 };
 
 /**
- * Returns an appropriate built-in layout template based on the available question/pair count or level index.
+ * Returns an appropriate built-in layout template based on the requested number of pairs.
+ */
+export function getLayoutForPairs(pairCount = 3) {
+  if (pairCount <= 2) return BUILTIN_LAYOUTS.session_4;
+  if (pairCount === 3) return BUILTIN_LAYOUTS.session_6;
+  if (pairCount === 4 || pairCount === 5) return BUILTIN_LAYOUTS.session_8;
+  if (pairCount === 6 || pairCount === 7) return BUILTIN_LAYOUTS.starter_12;
+  if (pairCount >= 8 && pairCount <= 9) return BUILTIN_LAYOUTS.cross_16;
+  if (pairCount >= 10 && pairCount <= 11) return BUILTIN_LAYOUTS.bridge_20;
+  if (pairCount >= 12 && pairCount <= 13) return BUILTIN_LAYOUTS.pagoda_24;
+  return BUILTIN_LAYOUTS.dragon_28;
+}
+
+/**
+ * Returns an appropriate built-in layout template based on levelData or fallback.
  */
 export function getLayoutForLevel(levelData, levelIdx = 0) {
   if (levelData?.layout && Array.isArray(levelData.layout) && levelData.layout.length >= 4) {
@@ -178,13 +207,7 @@ export function getLayoutForLevel(levelData, levelIdx = 0) {
   }
 
   const pool = levelData?.vocabularyPool || levelData?.questions || [];
-  const pairCount = pool.length;
-
-  if (pairCount >= 14 || levelIdx >= 4) return BUILTIN_LAYOUTS.dragon_28;
-  if (pairCount >= 12 || levelIdx === 3) return BUILTIN_LAYOUTS.pagoda_24;
-  if (pairCount >= 10 || levelIdx === 2) return BUILTIN_LAYOUTS.bridge_20;
-  if (pairCount >= 8 || levelIdx === 1) return BUILTIN_LAYOUTS.cross_16;
-  return BUILTIN_LAYOUTS.starter_12;
+  return getLayoutForPairs(pool.length);
 }
 
 /**
@@ -243,16 +266,63 @@ export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool, levelId
       const vocab = chosenPairs[step];
       const flip = Math.random() > 0.5;
 
+      const v1Word = vocab.word1 || '';
+      const v1Icon = vocab.icon1 || '';
+      const v2Word = vocab.word2 || '';
+      const v2Icon = vocab.icon2 || '';
+
+      const isV1Image = typeof v1Icon === 'string' && (
+        v1Icon.includes('drive.google.com') ||
+        v1Icon.includes('googleusercontent.com') ||
+        v1Icon.startsWith('http://') ||
+        v1Icon.startsWith('https://') ||
+        v1Icon.startsWith('data:image/') ||
+        /\.(png|jpe?g|svg|webp|gif|avif)$/i.test(v1Icon)
+      );
+
+      const isV2Image = typeof v2Icon === 'string' && (
+        v2Icon.includes('drive.google.com') ||
+        v2Icon.includes('googleusercontent.com') ||
+        v2Icon.startsWith('http://') ||
+        v2Icon.startsWith('https://') ||
+        v2Icon.startsWith('data:image/') ||
+        /\.(png|jpe?g|svg|webp|gif|avif)$/i.test(v2Icon)
+      );
+
+      // Match the following: If one is an image, image tile has NO text (word: ''), and text tile has NO image/icon (icon: '')
+      let tileAWord = flip ? v1Word : v2Word;
+      let tileAIcon = flip ? v1Icon : v2Icon;
+      let tileBWord = flip ? v2Word : v1Word;
+      let tileBIcon = flip ? v2Icon : v1Icon;
+
+      if (isV1Image && (!v2Icon || !isV2Image)) {
+        if (flip) {
+          tileAWord = ''; // Image tile has image only (no text)
+          tileBIcon = ''; // Word tile has text only (no image)
+        } else {
+          tileBWord = ''; // Image tile has image only (no text)
+          tileAIcon = ''; // Word tile has text only (no image)
+        }
+      } else if (isV2Image && (!v1Icon || !isV1Image)) {
+        if (flip) {
+          tileBWord = ''; // Image tile has image only (no text)
+          tileAIcon = ''; // Word tile has text only (no image)
+        } else {
+          tileAWord = ''; // Image tile has image only (no text)
+          tileBIcon = ''; // Word tile has text only (no image)
+        }
+      }
+
       const tileA = {
         id: `tile_${slotA.slotId}`,
         x: slotA.x,
         y: slotA.y,
         z: slotA.z,
         pairId: `pair_${step}_${vocab.id}`,
-        word: flip ? vocab.word1 : vocab.word2,
-        icon: flip ? vocab.icon1 : vocab.icon2,
+        word: tileAWord,
+        icon: tileAIcon,
         relation: vocab.relation,
-        partnerWord: flip ? vocab.word2 : vocab.word1
+        partnerWord: tileBWord || vocab.word1 || vocab.word2
       };
 
       const tileB = {
@@ -261,10 +331,10 @@ export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool, levelId
         y: slotB.y,
         z: slotB.z,
         pairId: `pair_${step}_${vocab.id}`,
-        word: flip ? vocab.word2 : vocab.word1,
-        icon: flip ? vocab.icon2 : vocab.icon1,
+        word: tileBWord,
+        icon: tileBIcon,
         relation: vocab.relation,
-        partnerWord: flip ? vocab.word1 : vocab.word2
+        partnerWord: tileAWord || vocab.word1 || vocab.word2
       };
 
       assignedTiles.push(tileA, tileB);

@@ -15,62 +15,6 @@
     },
     "questions": [
       {
-        "id": "img1",
-        "word1": "Mountain",
-        "word2": "Mountain",
-        "icon1": "mountain.jpg",
-        "icon2": "🏔️",
-        "relation": "Nature"
-      },
-      {
-        "id": "img2",
-        "word1": "Forest",
-        "word2": "Forest",
-        "icon1": "forest.jpg",
-        "icon2": "🌲",
-        "relation": "Nature"
-      },
-      {
-        "id": "img3",
-        "word1": "Hills",
-        "word2": "Hills",
-        "icon1": "hills.jpg",
-        "icon2": "⛰️",
-        "relation": "Nature"
-      },
-      {
-        "id": "img4",
-        "word1": "Market",
-        "word2": "Market",
-        "icon1": "market.jpg",
-        "icon2": "🏪",
-        "relation": "Community"
-      },
-      {
-        "id": "img5",
-        "word1": "Paddy",
-        "word2": "Paddy",
-        "icon1": "paddy.jpg",
-        "icon2": "🌾",
-        "relation": "Agriculture"
-      },
-      {
-        "id": "img6",
-        "word1": "Rhododendron",
-        "word2": "Rhododendron",
-        "icon1": "rhododendron.jpg",
-        "icon2": "🌺",
-        "relation": "National Flower"
-      },
-      {
-        "id": "img7",
-        "word1": "River",
-        "word2": "River",
-        "icon1": "river.jpg",
-        "icon2": "🌊",
-        "relation": "Nature"
-      },
-      {
         "id": "e1",
         "word1": "Hot",
         "word2": "Cold",

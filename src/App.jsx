@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AspectRatioContainer } from './components/AspectRatioContainer';
 import { HimalayanBackground } from './components/HimalayanBackground';
 import { MainMenu } from './components/MainMenu';
-import { LevelSelect } from './components/LevelSelect';
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
@@ -12,59 +11,40 @@ import { Mascot } from './components/Mascot';
 import { VictoryModal } from './components/VictoryModal';
 import { LEVELS as DEFAULT_LEVELS } from './data/gameData';
 import { loadGameLevels } from './utils/dataLoader';
-import { 
-  getFreeTiles, 
-  getAvailableFreePairs, 
-  generateSolutionFirstPuzzle, 
+import {
+  getFreeTiles,
+  getAvailableFreePairs,
+  generateSolutionFirstPuzzle,
   findSolvableHint,
-  getLayoutForLevel
+  getLayoutForPairs
 } from './utils/mahjongEngine';
+import { GAME_CONFIG } from './data/gameConfig';
 import { audio } from './utils/audio';
 import { formatTime } from './utils/timeFormatter';
 import { flutterBridge } from './utils/flutterBridge';
 import { BridgeDebugOverlay } from './components/BridgeDebugOverlay';
 
+const TOTAL_ROUNDS = GAME_CONFIG.TOTAL_ROUNDS || 3;
+const PAIRS_PER_ROUND = GAME_CONFIG.PAIRS_PER_ROUND || 3;
+
 export default function App() {
-  // Navigation Scene State: 'MENU' | 'LEVEL_SELECT' | 'GAME'
+  // Navigation Scene State: 'MENU' | 'GAME'
   const [scene, setScene] = useState('MENU');
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPause, setShowPause] = useState(false);
-  
-  // Persistent level stars & progress
+
+  // Levels data (single-level architecture)
   const [levels, setLevels] = useState(DEFAULT_LEVELS);
-  const [levelProgress, setLevelProgress] = useState(() => {
-    try {
-      const saved = localStorage.getItem('stc_mahjong_progress');
-      return saved ? JSON.parse(saved) : { 1: { stars: 0, highScore: 0, completed: false } };
-    } catch (e) {
-      return { 1: { stars: 0, highScore: 0, completed: false } };
-    }
-  });
 
-  // Load levels dynamically on mount and expose window.loadGameData
-  useEffect(() => {
-    loadGameLevels().then((data) => {
-      if (Array.isArray(data) && data.length > 0) {
-        setLevels(data);
-      }
-    });
+  // Round & Learning Personalization State
+  const [round, setRound] = useState(1);
+  const [failedQuestionIds, setFailedQuestionIds] = useState(new Set());
+  const [retriedQuestionIds, setRetriedQuestionIds] = useState(new Set());
+  const [usedQuestionIds, setUsedQuestionIds] = useState(new Set());
+  const [roundTransitionBanner, setRoundTransitionBanner] = useState(null); // e.g. "Round 2"
 
-    window.loadGameData = (customLevels) => {
-      if (Array.isArray(customLevels) && customLevels.length > 0) {
-        console.log('[App] Custom levels dynamically set via window.loadGameData');
-        setLevels(customLevels);
-        setCurrentLevelIndex(0);
-        setScene('LEVEL_SELECT');
-      }
-    };
-
-    return () => {
-      delete window.loadGameData;
-    };
-  }, []);
-
-  const [currentLevelIndex, setCurrentLevelIndex] = useState(0);
+  // Gameplay state
   const [tiles, setTiles] = useState([]);
   const [selectedTileId, setSelectedTileId] = useState(null);
   const [hintedPairIds, setHintedPairIds] = useState([]);
@@ -80,7 +60,7 @@ export default function App() {
   const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0 });
   const [timer, setTimer] = useState(0);
   const [isGameActive, setIsGameActive] = useState(false);
-  
+
   // Audio state
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [sfxMuted, setSfxMuted] = useState(false);
@@ -99,6 +79,28 @@ export default function App() {
     }
   });
 
+  // Load levels dynamically on mount and expose window.loadGameData
+  useEffect(() => {
+    loadGameLevels().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setLevels(data);
+      }
+    });
+
+    window.loadGameData = (customLevels) => {
+      if (Array.isArray(customLevels) && customLevels.length > 0) {
+        console.log('[App] Custom levels dynamically set via window.loadGameData');
+        setLevels(customLevels);
+      }
+    };
+
+    return () => {
+      delete window.loadGameData;
+    };
+  }, []);
+
+  const level = levels[0] || DEFAULT_LEVELS[0];
+
   // Active (unmatched) tiles
   const activeTiles = useMemo(() => {
     return tiles.filter((t) => !matchedIds.includes(t.id));
@@ -115,20 +117,102 @@ export default function App() {
     return getAvailableFreePairs(activeTiles);
   }, [activeTiles]);
 
-  // Initialize level
-  const startLevel = useCallback((levelIdx, levelsList = levels) => {
-    const activeLevel = levelsList[levelIdx] || levelsList[0];
-    if (!activeLevel) return;
-    
-    const questionsPool = activeLevel.questions || activeLevel.vocabularyPool || [];
+  /**
+   * Selects 3 question pairs for the round with learning personalization.
+   * Priority:
+   * 1. Questions that were failed in a previous round and haven't been retried yet.
+   * 2. Fresh questions from the pool that haven't been answered yet.
+   * 3. Any questions in pool if all have been used.
+   */
+  const selectQuestionsForRound = useCallback((currentFailed, currentRetried, currentUsed, pool) => {
+    const chosenQuestions = [];
+    const newRetried = new Set(currentRetried);
+    const newUsed = new Set(currentUsed);
 
-    // Guaranteed solution-first puzzle
-    const generatedTiles = generateSolutionFirstPuzzle(
-      activeLevel.layout,
-      questionsPool,
-      levelIdx
+    // 1. Check for pending retries (questions failed but not yet retried)
+    const pendingRetryIds = Array.from(currentFailed).filter((id) => !currentRetried.has(id));
+    for (const qId of pendingRetryIds) {
+      if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
+      const found = pool.find((q) => q.id === qId);
+      if (found) {
+        chosenQuestions.push(found);
+        newRetried.add(qId);
+      }
+    }
+
+    // 2. Fill remaining quota with fresh unused questions
+    const unusedQuestions = pool.filter(
+      (q) => !newUsed.has(q.id) && !chosenQuestions.some((cq) => cq.id === q.id)
+    );
+    const shuffledUnused = [...unusedQuestions].sort(() => Math.random() - 0.5);
+
+    for (const q of shuffledUnused) {
+      if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
+      chosenQuestions.push(q);
+      newUsed.add(q.id);
+    }
+
+    // 3. Fallback: if pool exhausted, fill from anywhere in pool
+    if (chosenQuestions.length < PAIRS_PER_ROUND) {
+      const remainingPool = pool.filter((q) => !chosenQuestions.some((cq) => cq.id === q.id));
+      const shuffledRest = [...remainingPool].sort(() => Math.random() - 0.5);
+      for (const q of shuffledRest) {
+        if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
+        chosenQuestions.push(q);
+      }
+    }
+
+    return {
+      selectedQuestions: chosenQuestions,
+      updatedRetried: newRetried,
+      updatedUsed: newUsed
+    };
+  }, []);
+
+  /**
+   * Start a round (session)
+   */
+  const startRound = useCallback((targetRound, isNewGame = false) => {
+    const activeLevel = levels[0] || DEFAULT_LEVELS[0];
+    const fullPool = activeLevel.questions || activeLevel.vocabularyPool || [];
+
+    let currentFailed = failedQuestionIds;
+    let currentRetried = retriedQuestionIds;
+    let currentUsed = usedQuestionIds;
+
+    if (isNewGame) {
+      currentFailed = new Set();
+      currentRetried = new Set();
+      currentUsed = new Set();
+      setFailedQuestionIds(new Set());
+      setRetriedQuestionIds(new Set());
+      setUsedQuestionIds(new Set());
+      setScore(0);
+      setTimer(0);
+    }
+
+    // Select 3 adaptive questions
+    const { selectedQuestions, updatedRetried, updatedUsed } = selectQuestionsForRound(
+      currentFailed,
+      currentRetried,
+      currentUsed,
+      fullPool
     );
 
+    setRetriedQuestionIds(updatedRetried);
+    setUsedQuestionIds(updatedUsed);
+
+    // Dynamically retrieve the layout template configured for this number of pairs
+    const currentLayout = getLayoutForPairs(PAIRS_PER_ROUND);
+
+    // Generate guaranteed-solvable layout with exactly PAIRS_PER_ROUND pairs
+    const generatedTiles = generateSolutionFirstPuzzle(
+      currentLayout,
+      selectedQuestions,
+      0
+    );
+
+    setRound(targetRound);
     setTiles(generatedTiles);
     setSelectedTileId(null);
     setHintedPairIds([]);
@@ -136,13 +220,32 @@ export default function App() {
     setMatchedIds([]);
     setJustUnlockedIds([]);
     setMoveHistory([]);
-    setMascotTip(activeLevel.mascotTip || '');
     setMascotMood('happy');
-    setIsVictory(false);
-    setTimer(0);
-    setIsGameActive(true);
     setHintsRemaining(3);
-  }, [levels]);
+    setIsVictory(false);
+    setIsGameActive(true);
+
+    if (targetRound === 1) {
+      setMascotTip(activeLevel.mascotTip || "Welcome! Match 3 pairs to clear Round 1!");
+    } else {
+      setMascotTip(`Round ${targetRound} of ${TOTAL_ROUNDS}! Look for open outer and top tiles! ✨`);
+    }
+
+    // Show temporary round announcement banner
+    setRoundTransitionBanner(`Round ${targetRound} of ${TOTAL_ROUNDS}`);
+    setTimeout(() => {
+      setRoundTransitionBanner(null);
+    }, 1500);
+
+  }, [levels, failedQuestionIds, retriedQuestionIds, usedQuestionIds, selectQuestionsForRound]);
+
+  /**
+   * Start fresh game from Main Menu
+   */
+  const handleStartGame = () => {
+    setScene('GAME');
+    startRound(1, true);
+  };
 
   // Initialize Flutter Bridge & register incoming Flutter commands
   useEffect(() => {
@@ -160,7 +263,7 @@ export default function App() {
     });
     const unbindRestart = flutterBridge.on('RESTART', () => {
       setShowPause(false);
-      startLevel(currentLevelIndex);
+      startRound(1, true);
     });
 
     return () => {
@@ -168,26 +271,9 @@ export default function App() {
       unbindResume();
       unbindRestart();
     };
-  }, [currentLevelIndex, startLevel]);
+  }, [showBridgeDebug, startRound]);
 
-  // Save progress to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('stc_mahjong_progress', JSON.stringify(levelProgress));
-    } catch (e) {
-      console.warn('Could not save progress', e);
-    }
-  }, [levelProgress]);
-
-  const level = levels[currentLevelIndex] || levels[0] || DEFAULT_LEVELS[0];
-
-  useEffect(() => {
-    if (scene === 'GAME') {
-      startLevel(currentLevelIndex);
-    }
-  }, [currentLevelIndex, startLevel, scene]);
-
-  // Auto-pause when tab/window is hidden or blurred (e.g. Flutter app backgrounded)
+  // Auto-pause when tab/window is hidden or blurred
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && scene === 'GAME' && isGameActive && !isVictory) {
@@ -209,7 +295,7 @@ export default function App() {
     };
   }, [scene, isGameActive, isVictory]);
 
-  // Timer interval with AFK auto-pause safeguard (auto-pauses if untouched for 3 minutes)
+  // Timer interval with AFK auto-pause safeguard
   useEffect(() => {
     let interval = null;
     let lastActivityTime = Date.now();
@@ -223,7 +309,6 @@ export default function App() {
 
     if (isGameActive && !isVictory && !showPause && scene === 'GAME') {
       interval = setInterval(() => {
-        // If inactive for > 180 seconds, auto-pause
         if (Date.now() - lastActivityTime > 180000) {
           setShowPause(true);
           return;
@@ -239,24 +324,31 @@ export default function App() {
     };
   }, [isGameActive, isVictory, showPause, scene]);
 
-  // Handle Tile Selection
+  // Handle Tile Selection & Learning Error Tracking
   const handleTileClick = (tile) => {
     // Strict Mahjong Check
     if (!freeTileIds.has(tile.id)) {
       audio.playMismatch();
-      setMascotTip("That tile is trapped! Remove the top or outer side tiles first.");
+      setMascotTip("That tile is trapped! Free the top or outer tiles first.");
       return;
     }
 
-    // Pronounce English word
-    audio.speakWord(tile.word);
+    // Pronounce English word (or partner word if image tile)
+    const pronounceWord = tile.word || tile.partnerWord;
+    if (pronounceWord) {
+      audio.speakWord(pronounceWord);
+    }
 
     // First tile selection
     if (!selectedTileId) {
       setSelectedTileId(tile.id);
       audio.playSelect();
       setHintedPairIds([]);
-      setMascotTip(`You selected "${tile.word}"! Look for its open ${tile.relation.toLowerCase()}!`);
+      if (tile.word) {
+        setMascotTip(`You selected "${tile.word}"! Look for its matching picture!`);
+      } else {
+        setMascotTip(`Look for the matching word for this picture!`);
+      }
       return;
     }
 
@@ -293,64 +385,68 @@ export default function App() {
         .filter((t) => !previousFree.has(t.id))
         .map((t) => t.id);
 
+      const pairName = (firstTile.word || firstTile.partnerWord || tile.word || tile.partnerWord);
       if (newlyFreed.length > 0) {
         setJustUnlockedIds(newlyFreed);
         setTimeout(() => setJustUnlockedIds([]), 900);
-        setMascotTip(`Brilliant! "${firstTile.word}" ↔ "${tile.word}" cleared! You uncovered ${newlyFreed.length} new tile${newlyFreed.length > 1 ? 's' : ''}! ✨`);
+        setMascotTip(`Brilliant! "${pairName}" matched! ✨`);
       } else {
-        setMascotTip(`Superb! "${firstTile.word}" ↔ "${tile.word}" are ${firstTile.relation}! ✨`);
+        setMascotTip(`Superb! "${pairName}" is a correct match! ✨`);
       }
 
-      // Check level victory
+      // Check Round or Game Victory
       if (newMatched.length >= tiles.length) {
-        setIsVictory(true);
-        setIsGameActive(false);
-        audio.playFanfare();
-        setMascotMood('celebrating');
-        setMascotTip('🎉 Outstanding work! You completed the entire Mahjong board!');
+        if (round < TOTAL_ROUNDS) {
+          // Progress to Next Round
+          audio.playMatch();
+          setMascotMood('celebrating');
+          setMascotTip(`🎉 Round ${round} Complete! Preparing Round ${round + 1}...`);
 
-        // Dynamic star calculation based on level's specific layout size/depth
-        const starTimes = level.starTimes || { threeStars: 60, twoStars: 120 };
-        const earnedStars = timer <= starTimes.threeStars ? 3 : timer <= starTimes.twoStars ? 2 : 1;
-        
-        // Time bonus: Reward players for finishing well within target time
-        const timeBonus = timer < starTimes.threeStars ? Math.max(0, (starTimes.threeStars - timer) * 5) : 0;
-        const totalFinalScore = score + 100 + timeBonus;
+          setTimeout(() => {
+            startRound(round + 1, false);
+          }, 1200);
+        } else {
+          // Completed all 3 rounds!
+          setIsVictory(true);
+          setIsGameActive(false);
+          audio.playFanfare();
+          setMascotMood('celebrating');
+          setMascotTip('🎉 Outstanding work! You completed all 3 Mahjong rounds!');
 
-        setVictoryStats({
-          stars: earnedStars,
-          timeBonus,
-          finalScore: totalFinalScore
-        });
+          const starTimes = level.starTimes || { threeStars: 90, twoStars: 150 };
+          const earnedStars = timer <= starTimes.threeStars ? 3 : timer <= starTimes.twoStars ? 2 : 1;
+          const timeBonus = timer < starTimes.threeStars ? Math.max(0, (starTimes.threeStars - timer) * 5) : 0;
+          const totalFinalScore = score + 100 + timeBonus;
 
-        const currentLvlId = level.id;
-        const nextLvlId = levels[currentLevelIndex + 1]?.id;
+          setVictoryStats({
+            stars: earnedStars,
+            timeBonus,
+            finalScore: totalFinalScore
+          });
 
-        // Dispatch LEVEL_COMPLETED event with score to Flutter
-        flutterBridge.sendLevelCompleted(totalFinalScore);
-
-        setLevelProgress((prev) => {
-          const prevLvl = prev[currentLvlId] || { stars: 0, highScore: 0, completed: false };
-          const updated = {
-            ...prev,
-            [currentLvlId]: {
-              stars: Math.max(prevLvl.stars, earnedStars),
-              highScore: Math.max(prevLvl.highScore, totalFinalScore),
-              completed: true
-            }
-          };
-          if (nextLvlId && !updated[nextLvlId]) {
-            updated[nextLvlId] = { stars: 0, highScore: 0, completed: false };
-          }
-          return updated;
-        });
+          // Dispatch LEVEL_COMPLETED event to Flutter
+          flutterBridge.sendLevelCompleted(totalFinalScore);
+        }
       }
     } else {
-      // Mismatch
+      // Mismatch - Track failed question for learning personalization in next round!
       audio.playMismatch();
       setMismatchedIds([firstTile.id, tile.id]);
       setMascotMood('happy');
-      setMascotTip(`"${firstTile.word}" and "${tile.word}" are not a pair. Try again!`);
+      const w1 = firstTile.word || firstTile.partnerWord;
+      const w2 = tile.word || tile.partnerWord;
+      setMascotTip(`"${w1}" and "${w2}" are not a pair. Try again!`);
+
+      // Extract raw question ID (e.g. from pair_0_e1 -> e1)
+      const rawFirstId = firstTile.pairId.replace(/^pair_\d+_/, '');
+      const rawSecondId = tile.pairId.replace(/^pair_\d+_/, '');
+
+      setFailedQuestionIds((prev) => {
+        const next = new Set(prev);
+        if (rawFirstId) next.add(rawFirstId);
+        if (rawSecondId) next.add(rawSecondId);
+        return next;
+      });
 
       setTimeout(() => {
         setMismatchedIds([]);
@@ -438,16 +534,44 @@ export default function App() {
     setMascotTip("✨ Solvable rearrangement complete! New free pairs are now open!");
   };
 
-  // Board layout bounds (safely resolved via built-in layouts or custom level.layout)
-  const currentLevelLayout = getLayoutForLevel(level, currentLevelIndex);
-  const minX = Math.min(...currentLevelLayout.map((s) => s.x));
-  const maxX = Math.max(...currentLevelLayout.map((s) => s.x));
-  const minY = Math.min(...currentLevelLayout.map((s) => s.y));
-  const maxY = Math.max(...currentLevelLayout.map((s) => s.y));
-  const maxZ = Math.max(...currentLevelLayout.map((s) => s.z));
+  // Dynamic Tile Sizing based on the longest word in the active round
+  const maxWordLength = useMemo(() => {
+    let maxLen = 0;
+    tiles.forEach((t) => {
+      if (t.word && t.word.length > maxLen) {
+        maxLen = t.word.length;
+      }
+    });
+    return Math.max(maxLen, 6); // default baseline 6 chars
+  }, [tiles]);
 
-  const boardWidth = (maxX - minX) * 86 + 184 + maxZ * 8;
-  const boardHeight = (maxY - minY) * 106 + 230 + maxZ * 16;
+  // Wide landscape tile geometry with increased width and dynamic expansion for long words
+  const tileGeometry = useMemo(() => {
+    const configSize = GAME_CONFIG.TILE_SIZE || {};
+    const baseW = configSize.BASE_WIDTH || 280;
+    const baseH = configSize.BASE_HEIGHT || 220;
+    const maxW = configSize.MAX_WIDTH || 400;
+    const unitXRatio = configSize.UNIT_X_RATIO || 0.48;
+    const unitYVal = configSize.UNIT_Y || 120;
+
+    const extraWidth = Math.max(0, maxWordLength - 6) * 16;
+    const tileWidth = Math.min(maxW, baseW + extraWidth);
+    const tileHeight = baseH;
+    const unitX = Math.round(tileWidth * unitXRatio);
+    const unitY = unitYVal;
+    return { tileWidth, tileHeight, unitX, unitY };
+  }, [maxWordLength]);
+
+  // Board layout bounds based on configured pair count
+  const sessionLayout = getLayoutForPairs(PAIRS_PER_ROUND);
+  const minX = Math.min(...sessionLayout.map((s) => s.x));
+  const maxX = Math.max(...sessionLayout.map((s) => s.x));
+  const minY = Math.min(...sessionLayout.map((s) => s.y));
+  const maxY = Math.max(...sessionLayout.map((s) => s.y));
+  const maxZ = Math.max(...sessionLayout.map((s) => s.z));
+
+  const boardWidth = (maxX - minX) * tileGeometry.unitX + tileGeometry.tileWidth + maxZ * 8;
+  const boardHeight = (maxY - minY) * tileGeometry.unitY + tileGeometry.tileHeight + maxZ * 16;
 
   const isDeadEnd = activeTiles.length > 0 && availableFreePairs.length === 0 && !isVictory;
 
@@ -459,7 +583,7 @@ export default function App() {
       {/* Main Menu Scene */}
       {scene === 'MENU' && (
         <>
-          {/* Top Left Toolbar: 1 Button (Settings) as per project-rules */}
+          {/* Top Left Toolbar: 1 Button (Settings) */}
           <GlobalTopBar
             buttons={[
               {
@@ -472,42 +596,10 @@ export default function App() {
           />
 
           <MainMenu
-            onPlay={() => {
-              setScene('LEVEL_SELECT');
-            }}
-          />
-        </>
-      )}
-
-      {/* Level Selection Scene */}
-      {scene === 'LEVEL_SELECT' && (
-        <>
-          {/* Top Left Toolbar: 2 Buttons (Back & Settings) as per project-rules */}
-          <GlobalTopBar
-            buttons={[
-              {
-                id: 'back',
-                icon: '⬅️',
-                title: 'Back to Main Menu',
-                onClick: () => setScene('MENU')
-              },
-              {
-                id: 'settings',
-                icon: '⚙️',
-                title: 'Settings',
-                onClick: () => setShowSettings(true)
-              }
-            ]}
-          />
-
-          <LevelSelect
-            levels={levels}
-            levelProgress={levelProgress}
-            onSelectLevel={(levelIdx) => {
-              setCurrentLevelIndex(levelIdx);
-              startLevel(levelIdx);
-              setScene('GAME');
-            }}
+            headerBadge={level.headerBadge}
+            title={level.title}
+            subtitle={level.subtitle}
+            onPlay={handleStartGame}
           />
         </>
       )}
@@ -539,7 +631,7 @@ export default function App() {
       {/* Active Game Scene */}
       {scene === 'GAME' && (
         <>
-          {/* Top Left Toolbar: Standard 2-Button Mapping (Slot 0: Pause, Slot 1: Settings) as per project-rules */}
+          {/* Top Left Toolbar: Standard 2-Button Mapping (Slot 0: Pause, Slot 1: Settings) */}
           <GlobalTopBar
             buttons={[
               {
@@ -563,11 +655,11 @@ export default function App() {
               onResume={() => setShowPause(false)}
               onRestart={() => {
                 setShowPause(false);
-                startLevel(currentLevelIndex);
+                startRound(1, true);
               }}
               onQuit={() => {
                 setShowPause(false);
-                setScene('LEVEL_SELECT');
+                setScene('MENU');
               }}
             />
           )}
@@ -588,7 +680,7 @@ export default function App() {
               boxSizing: 'border-box'
             }}
           >
-            {/* Center: Objective / Target Question Banner strictly centered at top */}
+            {/* Center: Objective / Round Progress Banner */}
             <div
               style={{
                 position: 'absolute',
@@ -609,15 +701,35 @@ export default function App() {
             >
               <span style={{ fontSize: '32px' }}>🎯</span>
               <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
-                {level.description}
+                Round {round} of {TOTAL_ROUNDS} • Match {PAIRS_PER_ROUND} Pairs!
               </span>
             </div>
 
-            {/* Right: Essential HUD (Open Pairs, Score, Time) with Fixed Widths */}
+            {/* Right: Essential HUD (Round, Open Pairs, Score, Time) */}
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82 }}>
               <div
                 style={{
-                  width: '145px',
+                  width: '135px',
+                  boxSizing: 'border-box',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  padding: '8px 12px',
+                  borderRadius: '20px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
+                  border: '3px solid #7dd3fc'
+                }}
+              >
+                <div style={{ fontSize: '13px', fontWeight: '900', color: '#e0f2fe', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
+                  ROUND
+                </div>
+                <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
+                  {round} / {TOTAL_ROUNDS}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  width: '140px',
                   boxSizing: 'border-box',
                   background: availableFreePairs.length > 0 ? '#ecfdf5' : '#fef2f2',
                   border: `3px solid ${availableFreePairs.length > 0 ? '#10b981' : '#ef4444'}`,
@@ -638,7 +750,7 @@ export default function App() {
 
               <div
                 style={{
-                  width: '135px',
+                  width: '130px',
                   boxSizing: 'border-box',
                   background: 'rgba(255, 255, 255, 0.96)',
                   padding: '8px 12px',
@@ -658,7 +770,7 @@ export default function App() {
 
               <div
                 style={{
-                  width: '135px',
+                  width: '130px',
                   boxSizing: 'border-box',
                   background: 'rgba(255, 255, 255, 0.96)',
                   padding: '8px 12px',
@@ -678,7 +790,46 @@ export default function App() {
             </div>
           </div>
 
-          {/* Main Playing Board - Strictly Centered as a Single Cohesive Giant Unit */}
+          {/* Round Transition Flash Announcement Banner (Perfect Center Overlay) */}
+          {roundTransitionBanner && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(15, 23, 42, 0.45)',
+                backdropFilter: 'blur(4px)',
+                zIndex: 95,
+                pointerEvents: 'none'
+              }}
+            >
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                  color: '#ffffff',
+                  padding: '24px 64px',
+                  borderRadius: '50px',
+                  fontSize: '44px',
+                  fontWeight: '900',
+                  border: '6px solid #bbf7d0',
+                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 50px rgba(34, 197, 94, 0.6)',
+                  letterSpacing: '1px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
+                  animation: 'popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+              >
+                <span>✨</span>
+                <span>{roundTransitionBanner}</span>
+                <span>✨</span>
+              </div>
+            </div>
+          )}
+
+          {/* Main Playing Board - 6 Tiles Solvable Unit */}
           <div
             style={{
               position: 'absolute',
@@ -705,6 +856,7 @@ export default function App() {
                 <Tile
                   key={tile.id}
                   tile={{ ...tile, minX, minY }}
+                  geometry={tileGeometry}
                   isFree={freeTileIds.has(tile.id)}
                   isSelected={selectedTileId === tile.id}
                   isHinted={hintedPairIds.includes(tile.id)}
@@ -717,7 +869,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Gentle Recovery Modal */}
+          {/* Gentle Recovery Modal if blocked */}
           {isDeadEnd && (
             <div
               style={{
@@ -806,7 +958,8 @@ export default function App() {
                 alignItems: 'center',
                 gap: '14px',
                 fontSize: '24px',
-                fontWeight: '900'
+                fontWeight: '900',
+                cursor: 'pointer'
               }}
             >
               <span style={{ fontSize: '30px' }}>💡</span>
@@ -871,9 +1024,9 @@ export default function App() {
                 marginBottom: '8px'
               }}
             >
-              <span>Tiles Cleared:</span>
+              <span>Round {round} Progress:</span>
               <span style={{ color: '#0284c7' }}>
-                {matchedIds.length} / {tiles.length}
+                {matchedIds.length / 2} / {tiles.length / 2} Pairs
               </span>
             </div>
             <div
@@ -897,23 +1050,15 @@ export default function App() {
             </div>
           </div>
 
-          {/* Victory Modal */}
+          {/* Victory Modal after Round 3 */}
           {isVictory && (
             <VictoryModal
               score={victoryStats.finalScore}
               timeBonus={victoryStats.timeBonus}
               timeTaken={timer}
-              levelId={level.id}
-              levelTitle={level.title}
+              levelTitle="Himalayan Word Mahjong"
               stars={victoryStats.stars}
-              hasNextLevel={currentLevelIndex < levels.length - 1}
-              onNextLevel={() => {
-                const nextIdx = currentLevelIndex + 1;
-                setCurrentLevelIndex(nextIdx);
-                startLevel(nextIdx);
-              }}
-              onReplay={() => startLevel(currentLevelIndex)}
-              onLevelMap={() => setScene('LEVEL_SELECT')}
+              onReplay={() => startRound(1, true)}
               onHome={() => setScene('MENU')}
             />
           )}

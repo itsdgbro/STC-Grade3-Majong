@@ -15,6 +15,7 @@ import React from 'react';
  */
 export const Tile = ({
   tile,
+  geometry,
   isFree,
   isSelected,
   isHinted,
@@ -25,14 +26,14 @@ export const Tile = ({
 }) => {
   if (isMatched) return null;
 
-  // Geometry dimensions - Extra super-sized Mahjong tiles clearly dominating the screen
-  const tileWidth = 184;
-  const tileHeight = 230;
-  const unitX = 86;
-  const unitY = 106;
+  // Geometry dimensions - Dynamic or wide landscape defaults
+  const tileWidth = geometry?.tileWidth || 280;
+  const tileHeight = geometry?.tileHeight || 220;
+  const unitX = geometry?.unitX || 135;
+  const unitY = geometry?.unitY || 120;
 
   // Layer elevation calculation with layout origin normalization
-  const layerHeight = tile.z * 16; // 16px 3D height per layer
+  const layerHeight = tile.z * 18; // 18px 3D height per layer
   const originX = tile.minX !== undefined ? tile.minX : 0;
   const originY = tile.minY !== undefined ? tile.minY : 0;
   const leftPx = (tile.x - originX) * unitX + (tile.z * 8);
@@ -74,15 +75,15 @@ export const Tile = ({
     frontBg = 'linear-gradient(175deg, #dcfce7 0%, #86efac 60%, #22c55e 100%)';
     faceBorder = '#16a34a';
     sideDepth = '#15803d';
-    jadeBack = '#14532d';
+    jadeBack = '#065f46';
     textColor = '#14532d';
-    transformStyle = 'scale(1.06) translateY(-8px)';
+    transformStyle = 'scale(1.04) translateY(-6px)';
     dropShadowStyle = '0 0 40px rgba(34, 197, 94, 0.9), 0 20px 32px rgba(0,0,0,0.4)';
   }
 
   // Dynamic font sizing based on word length to ensure massive, bold, highly legible words for kids
-  const wordLen = tile.word.length;
-  const wordFontSize = wordLen <= 4 ? '44px' : wordLen <= 6 ? '38px' : '34px';
+  const wordLen = tile.word ? tile.word.length : 0;
+  const wordFontSize = wordLen <= 4 ? '44px' : wordLen <= 7 ? '38px' : wordLen <= 10 ? '32px' : '26px';
 
   return (
     <div
@@ -164,29 +165,14 @@ export const Tile = ({
           overflow: 'hidden'
         }}
       >
-        {/* Header: Layer Number & Status Indicator */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 4px' }}>
-          <span
-            style={{
-              fontSize: '18px',
-              fontWeight: '900',
-              color: isFree ? (isSelected ? '#713f12' : '#0284c7') : '#a8a29e',
-              letterSpacing: '0.6px'
-            }}
-          >
-            Tier {tile.z + 1}
-          </span>
-
-          {!isFree ? (
-            <span style={{ fontSize: '20px', opacity: 0.85 }} title="Blocked: unblock top or sides">
+        {/* Header: Status Indicator (Lock when blocked) */}
+        {!isFree && (
+          <div style={{ position: 'absolute', top: '10px', right: '12px', zIndex: 5 }}>
+            <span style={{ fontSize: '20px', opacity: 0.85 }} title="Blocked: unblock outer sides">
               🔒
             </span>
-          ) : (
-            <span style={{ fontSize: '20px', opacity: 0.8 }} title="Click to pronounce">
-              🔊
-            </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Central Illustration: Image or Emoji */}
         <div
@@ -202,10 +188,19 @@ export const Tile = ({
         >
           {(() => {
             let iconSrc = tile.icon;
-            if (typeof iconSrc === 'string' && iconSrc.includes('drive.google.com')) {
+            if (typeof iconSrc === 'string' && (iconSrc.includes('drive.google.com') || iconSrc.includes('drive.usercontent.google.com'))) {
               const match = iconSrc.match(/\/d\/([a-zA-Z0-9_-]+)/) || iconSrc.match(/id=([a-zA-Z0-9_-]+)/);
               if (match && match[1]) {
+                // High-reliability direct thumbnail proxy for public Google Drive images
                 iconSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+              }
+            }
+
+            // Automatic addressable resolution: If given a simple filename like "mountain.png", "mountain.jpg" or "mountain.webp"
+            if (typeof iconSrc === 'string' && iconSrc && !iconSrc.startsWith('http') && !iconSrc.startsWith('/') && !iconSrc.startsWith('./') && !iconSrc.startsWith('data:')) {
+              if (/\.(png|jpe?g|svg|webp|gif|avif)$/i.test(iconSrc)) {
+                const basePath = import.meta.env.BASE_URL || './';
+                iconSrc = `${basePath}images/${iconSrc.replace(/^images\//, '')}`;
               }
             }
 
@@ -214,9 +209,11 @@ export const Tile = ({
               iconSrc.startsWith('https://') ||
               iconSrc.startsWith('data:image/') ||
               iconSrc.startsWith('/') ||
-              iconSrc.startsWith('assets/') ||
-              iconSrc.startsWith('images/') ||
-              /\.(png|jpe?g|svg|webp|gif)$/i.test(iconSrc)
+              iconSrc.startsWith('./') ||
+              iconSrc.includes('images/') ||
+              iconSrc.includes('assets/') ||
+              /\.(png|jpe?g|svg|webp|gif|avif)$/i.test(iconSrc) ||
+              iconSrc.includes('googleusercontent.com')
             );
 
             if (isImage) {
@@ -224,26 +221,41 @@ export const Tile = ({
                 <img
                   src={iconSrc}
                   alt={tile.word || 'Tile visual'}
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
                   style={{
-                    maxWidth: '120px',
-                    maxHeight: tile.word ? '90px' : '120px',
+                    maxWidth: '240px',
+                    maxHeight: tile.word ? '105px' : '155px',
                     objectFit: 'contain',
-                    borderRadius: '12px',
+                    borderRadius: '14px',
                     opacity: iconOpacity,
                     filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.18))',
                     transition: 'transform 0.2s ease'
                   }}
                   onError={(e) => {
+                    // Fallback to direct export url if lh3 is blocked
+                    if (tile.icon && tile.icon.includes('drive.google.com') && !e.target.dataset.triedFallback) {
+                      const match = tile.icon.match(/\/d\/([a-zA-Z0-9_-]+)/) || tile.icon.match(/id=([a-zA-Z0-9_-]+)/);
+                      if (match && match[1]) {
+                        e.target.dataset.triedFallback = 'true';
+                        e.target.src = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
+                        return;
+                      }
+                    }
                     e.target.style.display = 'none';
                   }}
                 />
               );
             }
 
+            if (!tile.icon) {
+              return null;
+            }
+
             return (
               <div
                 style={{
-                  fontSize: tile.word ? '64px' : '76px',
+                  fontSize: tile.word ? '72px' : '84px',
                   opacity: iconOpacity,
                   filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.22))',
                   lineHeight: 1,
@@ -260,7 +272,7 @@ export const Tile = ({
         {tile.word ? (
           <div
             style={{
-              fontSize: wordFontSize,
+              fontSize: !tile.icon ? '48px' : wordFontSize,
               fontWeight: '900',
               color: textColor,
               textAlign: 'center',
@@ -271,7 +283,8 @@ export const Tile = ({
               whiteSpace: 'nowrap',
               lineHeight: 1.1,
               letterSpacing: '-0.4px',
-              fontFamily: "'Fredoka', sans-serif"
+              fontFamily: "'Fredoka', sans-serif",
+              margin: !tile.icon ? 'auto 0' : '0'
             }}
           >
             {tile.word}
