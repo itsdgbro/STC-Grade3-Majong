@@ -39,6 +39,8 @@ class AudioManager {
   setSfxVolume(val) {
     this.sfxVolume = Math.max(0, Math.min(1, val));
     if (this.sfxVolume > 0) this.sfxMuted = false;
+    this.speechVolume = this.sfxVolume;
+    this.speechMuted = this.sfxMuted;
   }
 
   setMusicVolume(val) {
@@ -53,6 +55,7 @@ class AudioManager {
 
   toggleSfxMute() {
     this.sfxMuted = !this.sfxMuted;
+    this.speechMuted = this.sfxMuted;
     return this.sfxMuted;
   }
 
@@ -289,14 +292,14 @@ class AudioManager {
   }
 
   speakWord(word) {
-    if (this.speechMuted || this.speechVolume <= 0 || !window.speechSynthesis) return;
+    if (this.sfxMuted || this.speechMuted || this.getEffectiveSfxVolume() <= 0 || !window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(word);
       utterance.lang = 'en-US';
       utterance.rate = 0.88;
       utterance.pitch = 1.08;
-      utterance.volume = this.speechVolume;
+      utterance.volume = this.getEffectiveSfxVolume();
 
       const voices = window.speechSynthesis.getVoices();
       if (voices && voices.length > 0) {

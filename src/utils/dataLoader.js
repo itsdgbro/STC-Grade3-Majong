@@ -1,11 +1,12 @@
 import { LEVELS as FALLBACK_LEVELS } from '../data/gameData';
+import { GAME_CONFIG } from '../data/gameConfig';
 
 /**
  * Loads game levels data.
  * Checks priority:
  * 1. window.__GAME_DATA__ (Injected by Flutter / WebView / Host container)
  * 2. URL query param `?data=path/to/custom.json` or `?dataset=filename.json`
- * 3. Local build folder JSON `data/levels.json` (or `./data/levels.json`)
+ * 3. Local build folder JSON configured in GAME_CONFIG.DATA_FILE (or `data/levels.json`)
  * 4. Bundled fallback JS data (guarantees zero crash even offline)
  */
 export async function loadGameLevels() {
@@ -36,20 +37,22 @@ export async function loadGameLevels() {
     }
   }
 
-  // 3. Check build folder data/levels.json
+  // 3. Check build folder data JSON (from GAME_CONFIG.DATA_FILE or levels.json)
   try {
+    const filename = GAME_CONFIG.DATA_FILE || 'levels.json';
+    const cleanFilename = filename.startsWith('data/') ? filename : `data/${filename}`;
     // Relative path works correctly whether hosted under root or subfolder
-    const jsonPath = (import.meta.env.BASE_URL || './') + 'data/levels.json';
+    const jsonPath = (import.meta.env.BASE_URL || './') + cleanFilename;
     const res = await fetch(jsonPath);
     if (res.ok) {
       const json = await res.json();
       if (Array.isArray(json) && json.length > 0) {
-        console.log('[DataLoader] Loaded levels from build folder data/levels.json');
+        console.log(`[DataLoader] Loaded levels from build folder ${cleanFilename}`);
         return json;
       }
     }
   } catch (err) {
-    console.warn('[DataLoader] Failed to fetch data/levels.json:', err);
+    console.warn(`[DataLoader] Failed to fetch ${GAME_CONFIG.DATA_FILE}:`, err);
   }
 
   // 4. Fallback bundled data

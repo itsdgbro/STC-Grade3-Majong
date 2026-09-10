@@ -3,6 +3,9 @@
  * Adjust round progression, pair spawn counts, and session rules here.
  */
 export const GAME_CONFIG = {
+  // Select the JSON file to load game data from
+  DATA_FILE: 'Grade-3-English-final.json',
+
   // Total continuous rounds in the game (e.g., 3)
   TOTAL_ROUNDS: 3,
 
@@ -15,7 +18,7 @@ export const GAME_CONFIG = {
   // 10 pairs = 20 tiles
   // 12 pairs = 24 tiles
   // 14 pairs = 28 tiles
-  PAIRS_PER_ROUND: 8,
+  PAIRS_PER_ROUND: 6,
 
   // Tile Sizing & Dimensions
   TILE_SIZE: {

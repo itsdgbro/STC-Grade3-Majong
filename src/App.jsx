@@ -277,27 +277,6 @@ export default function App() {
     };
   }, [showBridgeDebug, startRound]);
 
-  // Auto-pause when tab/window is hidden or blurred
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && scene === 'GAME' && isGameActive && !isVictory) {
-        setShowPause(true);
-      }
-    };
-    const handleBlur = () => {
-      if (scene === 'GAME' && isGameActive && !isVictory) {
-        setShowPause(true);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [scene, isGameActive, isVictory]);
 
   // Timer interval with AFK auto-pause safeguard
   useEffect(() => {
@@ -693,10 +672,6 @@ export default function App() {
           setMusicVolume={setMusicVolume}
           musicMuted={musicMuted}
           setMusicMuted={setMusicMuted}
-          speechVolume={speechVolume}
-          setSpeechVolume={setSpeechVolume}
-          speechMuted={speechMuted}
-          setSpeechMuted={setSpeechMuted}
         />
       )}
 
@@ -1075,14 +1050,14 @@ export default function App() {
               style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: '#ffffff',
-                padding: '18px 34px',
-                borderRadius: '24px',
-                border: '4px solid #fde68a',
-                boxShadow: '0 8px 26px rgba(217, 119, 6, 0.48)',
+                padding: '20px 42px',
+                borderRadius: '28px',
+                border: '5px solid #fde68a',
+                boxShadow: '0 10px 28px rgba(217, 119, 6, 0.48)',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                fontSize: '30px',
+                fontSize: '32px',
                 fontWeight: '900',
                 letterSpacing: '0.8px',
                 cursor: 'pointer',
@@ -1098,14 +1073,14 @@ export default function App() {
               style={{
                 background: moveHistory.length > 0 ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '#94a3b8',
                 color: '#ffffff',
-                padding: '18px 34px',
-                borderRadius: '24px',
-                border: `4px solid ${moveHistory.length > 0 ? '#93c5fd' : '#cbd5e1'}`,
-                boxShadow: '0 8px 26px rgba(59, 130, 246, 0.4)',
+                padding: '20px 42px',
+                borderRadius: '28px',
+                border: `5px solid ${moveHistory.length > 0 ? '#93c5fd' : '#cbd5e1'}`,
+                boxShadow: '0 10px 28px rgba(59, 130, 246, 0.4)',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                fontSize: '30px',
+                fontSize: '32px',
                 fontWeight: '900',
                 letterSpacing: '0.8px',
                 cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed',

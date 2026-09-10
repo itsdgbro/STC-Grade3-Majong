@@ -174,140 +174,164 @@ export const Tile = ({
           </div>
         )}
 
-        {/* Central Illustration: Image or Emoji */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            overflow: 'hidden',
-            margin: '4px 0'
-          }}
-        >
-          {(() => {
-            let iconSrc = tile.icon;
-            if (typeof iconSrc === 'string' && (iconSrc.includes('drive.google.com') || iconSrc.includes('drive.usercontent.google.com'))) {
-              const match = iconSrc.match(/\/d\/([a-zA-Z0-9_-]+)/) || iconSrc.match(/id=([a-zA-Z0-9_-]+)/);
-              if (match && match[1]) {
-                // High-reliability direct thumbnail proxy for public Google Drive images
-                iconSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+        {/* Top visual balancing spacer when there is no icon to keep word centered with relation ribbon */}
+        {!tile.icon && tile.relation && (
+          <div style={{ height: '36px', pointerEvents: 'none', visibility: 'hidden' }} />
+        )}
+
+        {/* Central Illustration: Image or Emoji (only rendered if icon exists) */}
+        {tile.icon ? (
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              overflow: 'hidden',
+              margin: '4px 0'
+            }}
+          >
+            {(() => {
+              let iconSrc = tile.icon;
+              if (typeof iconSrc === 'string' && (iconSrc.includes('drive.google.com') || iconSrc.includes('drive.usercontent.google.com'))) {
+                const match = iconSrc.match(/\/d\/([a-zA-Z0-9_-]+)/) || iconSrc.match(/id=([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                  // High-reliability direct thumbnail proxy for public Google Drive images
+                  iconSrc = `https://lh3.googleusercontent.com/d/${match[1]}`;
+                }
               }
-            }
 
-            // Automatic addressable resolution: If given a simple filename like "mountain.png", "mountain.jpg" or "mountain.webp"
-            if (typeof iconSrc === 'string' && iconSrc && !iconSrc.startsWith('http') && !iconSrc.startsWith('/') && !iconSrc.startsWith('./') && !iconSrc.startsWith('data:')) {
-              if (/\.(png|jpe?g|svg|webp|gif|avif)$/i.test(iconSrc)) {
-                const basePath = import.meta.env.BASE_URL || './';
-                iconSrc = `${basePath}images/${iconSrc.replace(/^images\//, '')}`;
+              // Automatic addressable resolution: If given a simple filename like "mountain.png", "mountain.jpg" or "mountain.webp"
+              if (typeof iconSrc === 'string' && iconSrc && !iconSrc.startsWith('http') && !iconSrc.startsWith('/') && !iconSrc.startsWith('./') && !iconSrc.startsWith('data:')) {
+                if (/\.(png|jpe?g|svg|webp|gif|avif)$/i.test(iconSrc)) {
+                  const basePath = import.meta.env.BASE_URL || './';
+                  iconSrc = `${basePath}images/${iconSrc.replace(/^images\//, '')}`;
+                }
               }
-            }
 
-            const isImage = typeof iconSrc === 'string' && (
-              iconSrc.startsWith('http://') ||
-              iconSrc.startsWith('https://') ||
-              iconSrc.startsWith('data:image/') ||
-              iconSrc.startsWith('/') ||
-              iconSrc.startsWith('./') ||
-              iconSrc.includes('images/') ||
-              iconSrc.includes('assets/') ||
-              /\.(png|jpe?g|svg|webp|gif|avif)$/i.test(iconSrc) ||
-              iconSrc.includes('googleusercontent.com')
-            );
+              const isImage = typeof iconSrc === 'string' && (
+                iconSrc.startsWith('http://') ||
+                iconSrc.startsWith('https://') ||
+                iconSrc.startsWith('data:image/') ||
+                iconSrc.startsWith('/') ||
+                iconSrc.startsWith('./') ||
+                iconSrc.includes('images/') ||
+                iconSrc.includes('assets/') ||
+                /\.(png|jpe?g|svg|webp|gif|avif)$/i.test(iconSrc) ||
+                iconSrc.includes('googleusercontent.com')
+              );
 
-            if (isImage) {
+              if (isImage) {
+                return (
+                  <img
+                    src={iconSrc}
+                    alt={tile.word || 'Tile visual'}
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
+                    style={{
+                      maxWidth: '240px',
+                      maxHeight: tile.word ? '105px' : '155px',
+                      objectFit: 'contain',
+                      borderRadius: '14px',
+                      opacity: iconOpacity,
+                      filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.18))',
+                      transition: 'transform 0.2s ease'
+                    }}
+                    onError={(e) => {
+                      // Fallback to direct export url if lh3 is blocked
+                      if (tile.icon && tile.icon.includes('drive.google.com') && !e.target.dataset.triedFallback) {
+                        const match = tile.icon.match(/\/d\/([a-zA-Z0-9_-]+)/) || tile.icon.match(/id=([a-zA-Z0-9_-]+)/);
+                        if (match && match[1]) {
+                          e.target.dataset.triedFallback = 'true';
+                          e.target.src = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
+                          return;
+                        }
+                      }
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                );
+              }
+
               return (
-                <img
-                  src={iconSrc}
-                  alt={tile.word || 'Tile visual'}
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
+                <div
                   style={{
-                    maxWidth: '240px',
-                    maxHeight: tile.word ? '105px' : '155px',
-                    objectFit: 'contain',
-                    borderRadius: '14px',
+                    fontSize: tile.word ? '72px' : '84px',
                     opacity: iconOpacity,
-                    filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.18))',
+                    filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.22))',
+                    lineHeight: 1,
                     transition: 'transform 0.2s ease'
                   }}
-                  onError={(e) => {
-                    // Fallback to direct export url if lh3 is blocked
-                    if (tile.icon && tile.icon.includes('drive.google.com') && !e.target.dataset.triedFallback) {
-                      const match = tile.icon.match(/\/d\/([a-zA-Z0-9_-]+)/) || tile.icon.match(/id=([a-zA-Z0-9_-]+)/);
-                      if (match && match[1]) {
-                        e.target.dataset.triedFallback = 'true';
-                        e.target.src = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w400`;
-                        return;
-                      }
-                    }
-                    e.target.style.display = 'none';
-                  }}
-                />
+                >
+                  {tile.icon}
+                </div>
               );
-            }
-
-            if (!tile.icon) {
-              return null;
-            }
-
-            return (
-              <div
-                style={{
-                  fontSize: tile.word ? '72px' : '84px',
-                  opacity: iconOpacity,
-                  filter: !isFree ? 'grayscale(90%)' : 'drop-shadow(0 4px 6px rgba(0,0,0,0.22))',
-                  lineHeight: 1,
-                  transition: 'transform 0.2s ease'
-                }}
-              >
-                {tile.icon}
-              </div>
-            );
-          })()}
-        </div>
+            })()}
+          </div>
+        ) : null}
 
         {/* Vocabulary Word Display - Rendered if word exists */}
         {tile.word ? (
           <div
             style={{
-              fontSize: !tile.icon ? '48px' : wordFontSize,
-              fontWeight: '900',
-              color: textColor,
-              textAlign: 'center',
-              textTransform: 'capitalize',
+              flex: !tile.icon ? 1 : '0 0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               width: '100%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              lineHeight: 1.1,
-              letterSpacing: '-0.4px',
-              fontFamily: "'Fredoka', sans-serif",
-              margin: !tile.icon ? 'auto 0' : '0'
+              padding: '0 10px',
+              boxSizing: 'border-box',
+              margin: !tile.icon ? '0' : '0 0 4px 0'
             }}
           >
-            {tile.word}
+            <div
+              style={{
+                fontSize: !tile.icon
+                  ? (wordLen <= 5 ? '48px' : wordLen <= 8 ? '42px' : wordLen <= 11 ? '36px' : '30px')
+                  : wordFontSize,
+                fontWeight: '900',
+                color: textColor,
+                textAlign: 'center',
+                textTransform: 'capitalize',
+                width: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                lineHeight: 1.15,
+                letterSpacing: '-0.4px',
+                fontFamily: "'Fredoka', sans-serif"
+              }}
+            >
+              {tile.word}
+            </div>
           </div>
         ) : null}
 
         {/* Relation Tag Ribbon */}
-        <div
-          style={{
-            fontSize: '17px',
-            fontWeight: '900',
-            padding: '5px 18px',
-            borderRadius: '12px',
-            background: isFree 
-              ? (isSelected ? 'rgba(113, 63, 18, 0.25)' : 'rgba(2, 132, 199, 0.2)') 
-              : 'rgba(0, 0, 0, 0.35)',
-            color: isFree ? (isSelected ? '#713f12' : '#0369a1') : '#d6d3d1',
-            letterSpacing: '0.6px',
-            textTransform: 'uppercase'
-          }}
-        >
-          {tile.relation}
-        </div>
+        {tile.relation ? (
+          <div
+            style={{
+              fontSize: '22px',
+              fontWeight: '900',
+              padding: '7px 22px',
+              borderRadius: '14px',
+              background: isFree 
+                ? (isSelected ? 'rgba(113, 63, 18, 0.25)' : 'rgba(2, 132, 199, 0.22)') 
+                : 'rgba(0, 0, 0, 0.35)',
+              color: isFree ? (isSelected ? '#713f12' : '#0369a1') : '#d6d3d1',
+              letterSpacing: '0.8px',
+              textTransform: 'uppercase',
+              whiteSpace: 'nowrap',
+              maxWidth: '92%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              textAlign: 'center'
+            }}
+          >
+            {tile.relation}
+          </div>
+        ) : null}
       </div>
     </div>
   );

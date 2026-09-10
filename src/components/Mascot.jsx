@@ -99,22 +99,22 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
       {/* Speech Bubble - Glassmorphic, High Readability */}
       <div
         style={{
-          background: 'rgba(255, 255, 255, 0.75)',
-          backdropFilter: 'blur(10px)',
-          WebkitBackdropFilter: 'blur(10px)',
-          borderRadius: '26px',
-          padding: '16px 28px',
-          maxWidth: '560px',
-          boxShadow: '0 10px 28px rgba(0, 0, 0, 0.22)',
-          border: '3.5px solid #facc15',
+          background: 'rgba(255, 255, 255, 0.82)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: '30px',
+          padding: '20px 34px',
+          maxWidth: '820px',
+          boxShadow: '0 12px 32px rgba(0, 0, 0, 0.26)',
+          border: '4px solid #facc15',
           position: 'relative',
           marginBottom: '6px'
         }}
       >
-        <div style={{ fontSize: '22px', fontWeight: '900', color: '#b45309', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.9px', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
+        <div style={{ fontSize: '24px', fontWeight: '900', color: '#b45309', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.9px', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
           🐾 Pema says:
         </div>
-        <div style={{ fontSize: '26px', fontWeight: '900', color: '#0f172a', lineHeight: '1.35', fontFamily: "'Fredoka', sans-serif" }}>
+        <div style={{ fontSize: '30px', fontWeight: '900', color: '#0f172a', lineHeight: '1.38', fontFamily: "'Fredoka', sans-serif" }}>
           {tip || 'Match the word pairs to clear the board!'}
         </div>
         {/* Tail pointing to avatar */}
