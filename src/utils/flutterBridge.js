@@ -7,8 +7,8 @@
 
 class FlutterBridgeService {
   constructor() {
-    this.gameId = 'stc_grade3_mahjong';
-    this.gameTitle = 'Grade 3 Vocabulary Mahjong';
+    this.gameId = 'stc_grade3_crossword';
+    this.gameTitle = 'Grade 3 Crossword Quest';
     // Only log to console if debug=true or ?debug_bridge=true in URL
     this.debug = false;
     this.listeners = new Map(); // Command name -> Set of callbacks
@@ -195,6 +195,30 @@ class FlutterBridgeService {
   sendLevelCompleted(score = 0) {
     const finalScore = typeof score === 'object' ? (score.score || 0) : Number(score) || 0;
     return this.send('LEVEL_COMPLETED', finalScore);
+  }
+
+  /**
+   * Send Game Start event
+   */
+  sendGameStart() {
+    this.log('[FlutterBridge] sendGameStart');
+    return this.send('GAME_START', 0);
+  }
+
+  /**
+   * Send score update event
+   */
+  sendScore(score = 0) {
+    this.log('[FlutterBridge] sendScore:', score);
+    return this.send('SCORE_UPDATE', typeof score === 'number' ? score : (score?.score || 0));
+  }
+
+  /**
+   * Send game completion event
+   */
+  sendGameComplete(data = {}) {
+    this.log('[FlutterBridge] sendGameComplete:', data);
+    return this.send('GAME_COMPLETE', data);
   }
 
   _recordHistory(item) {

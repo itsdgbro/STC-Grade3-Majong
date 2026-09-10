@@ -4,50 +4,32 @@
  */
 export const GAME_CONFIG = {
   // Select the JSON file to load game data from
-  DATA_FILE: 'Grade-3-English-final.json',
+  DATA_FILE: 'crossword_words.json',
 
-  // Total continuous rounds in the game (e.g., 3)
-  TOTAL_ROUNDS: 3,
+  // Total continuous rounds in the game (e.g. 5 rounds)
+  TOTAL_ROUNDS: 5,
 
-  // Number of pairs to spawn per round (e.g. 2, 3, 4, 6, 8, 10, 12, 14)
-  // 2 pairs = 4 tiles
-  // 3 pairs = 6 tiles
-  // 4 pairs = 8 tiles
-  // 6 pairs = 12 tiles
-  // 8 pairs = 16 tiles
-  // 10 pairs = 20 tiles
-  // 12 pairs = 24 tiles
-  // 14 pairs = 28 tiles
-  PAIRS_PER_ROUND: 6,
+  // Total player lives (hearts)
+  MAX_HEARTS: 5,
 
-  // Tile Sizing & Dimensions
-  TILE_SIZE: {
-    // Base tile width in pixels (landscape profile)
-    BASE_WIDTH: 280,
-    // Base tile height in pixels
-    BASE_HEIGHT: 220,
-    // Maximum tile width when expanding for long words
-    MAX_WIDTH: 400,
-    // Proportional horizontal grid step ratio relative to tile width
-    UNIT_X_RATIO: 0.48,
-    // Vertical grid step in pixels
-    UNIT_Y: 120
-  },
+  // Number of words to randomly pick and generate in crossword per round (4-8)
+  WORDS_PER_ROUND: 5,
 
   // Star scoring target times (seconds)
   STAR_TIMES: {
-    THREE_STARS: 90,
-    TWO_STARS: 150
+    THREE_STARS: 120,
+    TWO_STARS: 240
   },
 
   // Number of hints granted per round
   HINTS_PER_ROUND: 3,
 
-  // Points awarded per correct match
-  SCORE_PER_MATCH: 100,
+  // Points awarded per correct word
+  SCORE_PER_WORD: 3,
 
-  // AFK Idle cooldown timeout in seconds before auto-pausing (e.g. 30 seconds)
-  AFK_COOLDOWN_SECONDS: 30
+  // Extra distractor alphabets to add to keyboard to keep game confusing
+  EXTRA_DISTRACTOR_LETTERS: 3,
+
+  // AFK Idle cooldown timeout in seconds before auto-pausing
+  AFK_COOLDOWN_SECONDS: 45
 };
-
-

@@ -1,31 +1,23 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AspectRatioContainer } from './components/AspectRatioContainer';
 import { HimalayanBackground } from './components/HimalayanBackground';
 import { MainMenu } from './components/MainMenu';
 import { HowToPlayModal } from './components/HowToPlayModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
-import { GlobalTopBar } from './components/GlobalTopBar';
-import { Tile } from './components/Tile';
-import { Mascot } from './components/Mascot';
+import { CrosswordGrid } from './components/CrosswordGrid';
+import { LetterKeyboard } from './components/LetterKeyboard';
+import { ClueCard } from './components/ClueCard';
 import { VictoryModal } from './components/VictoryModal';
-import { LEVELS as DEFAULT_LEVELS } from './data/gameData';
-import { loadGameLevels } from './utils/dataLoader';
-import {
-  getFreeTiles,
-  getAvailableFreePairs,
-  generateSolutionFirstPuzzle,
-  findSolvableHint,
-  getLayoutForPairs
-} from './utils/mahjongEngine';
+import { RoundCompleteModal } from './components/RoundCompleteModal';
+import { GameOverModal } from './components/GameOverModal';
 import { GAME_CONFIG } from './data/gameConfig';
+import { generateCrosswordPuzzle } from './utils/crosswordGenerator';
 import { audio } from './utils/audio';
-import { formatTime } from './utils/timeFormatter';
 import { flutterBridge } from './utils/flutterBridge';
 import { BridgeDebugOverlay } from './components/BridgeDebugOverlay';
 
-const TOTAL_ROUNDS = GAME_CONFIG.TOTAL_ROUNDS || 3;
-const PAIRS_PER_ROUND = GAME_CONFIG.PAIRS_PER_ROUND || 3;
+const TOTAL_ROUNDS = GAME_CONFIG.TOTAL_ROUNDS || 5;
 
 export default function App() {
   // Navigation Scene State: 'MENU' | 'GAME'
@@ -33,45 +25,51 @@ export default function App() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPause, setShowPause] = useState(false);
+  const [showRoundComplete, setShowRoundComplete] = useState(false);
+  const [roundCompleteData, setRoundCompleteData] = useState({ round: 1, wordsCount: 4, words: [] });
+  const [showGameOver, setShowGameOver] = useState(false);
 
-  // Levels data (single-level architecture)
-  const [levels, setLevels] = useState(DEFAULT_LEVELS);
+  // All word definitions from JSON
+  const [wordsPool, setWordsPool] = useState([]);
 
-  // Round & Learning Personalization State
+  // Game progression
   const [round, setRound] = useState(1);
-  const [failedQuestionIds, setFailedQuestionIds] = useState(new Set());
-  const [retriedQuestionIds, setRetriedQuestionIds] = useState(new Set());
-  const [masteredQuestionIds, setMasteredQuestionIds] = useState(new Set());
-  const [usedQuestionIds, setUsedQuestionIds] = useState(new Set());
-  const [roundTransitionBanner, setRoundTransitionBanner] = useState(null); // e.g. "Round 2"
-
-  // Gameplay state
-  const [tiles, setTiles] = useState([]);
-  const [selectedTileId, setSelectedTileId] = useState(null);
-  const [hintedPairIds, setHintedPairIds] = useState([]);
-  const [mismatchedIds, setMismatchedIds] = useState([]);
-  const [matchedIds, setMatchedIds] = useState([]);
-  const [justUnlockedIds, setJustUnlockedIds] = useState([]);
-  const [moveHistory, setMoveHistory] = useState([]);
   const [score, setScore] = useState(0);
-  const [xp, setXp] = useState(0);
-  const [hintsRemaining, setHintsRemaining] = useState(3);
-  const [mascotTip, setMascotTip] = useState('');
-  const [mascotMood, setMascotMood] = useState('happy');
-  const [isVictory, setIsVictory] = useState(false);
-  const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0, finalXp: 0 });
-  const [timer, setTimer] = useState(0);
+  const [hintsRemaining, setHintsRemaining] = useState(GAME_CONFIG.HINTS_PER_ROUND || 3);
+  const [hearts, setHearts] = useState(GAME_CONFIG.MAX_HEARTS || 5);
+  const [heartShake, setHeartShake] = useState(false);
+  const heartsRef = useRef(GAME_CONFIG.MAX_HEARTS || 5);
   const [isGameActive, setIsGameActive] = useState(false);
 
-  // Audio state
+  // Completion tracking system
+  const [totalSpawnWordCount, setTotalSpawnWordCount] = useState(0);
+  const [flagCounter, setFlagCounter] = useState(0);
+  const totalSpawnWordCountRef = useRef(0);
+  const flagCounterRef = useRef(0);
+
+  // Crossword puzzle state
+  const [puzzle, setPuzzle] = useState(null);
+  const [solvedWords, setSolvedWords] = useState([]); // Array of strings e.g. ['FARM']
+  const [revealedLetters, setRevealedLetters] = useState({}); // "r,c" -> letter
+  const [activeWord, setActiveWord] = useState(null);
+  const [keyboardLetters, setKeyboardLetters] = useState([]);
+  const [messageToast, setMessageToast] = useState(null);
+
+  // Mascot state
+  const [mascotTip, setMascotTip] = useState('Tap letters to solve crossword words!');
+  const [mascotMood, setMascotMood] = useState('happy');
+
+  // Victory state
+  const [isVictory, setIsVictory] = useState(false);
+  const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0 });
+
+  // Audio settings
   const [sfxVolume, setSfxVolume] = useState(0.8);
   const [sfxMuted, setSfxMuted] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [musicMuted, setMusicMuted] = useState(false);
-  const [speechVolume, setSpeechVolume] = useState(0.7);
-  const [speechMuted, setSpeechMuted] = useState(false);
 
-  // Flutter Bridge Debug Overlay state (auto-enabled if ?debug_bridge=true in URL)
+  // Flutter Bridge Debug Overlay
   const [showBridgeDebug, setShowBridgeDebug] = useState(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -81,1096 +79,1117 @@ export default function App() {
     }
   });
 
-  // Load levels dynamically on mount and expose window.loadGameData
+  // 1. Fetch crossword_words.json on load
   useEffect(() => {
-    loadGameLevels().then((data) => {
-      if (Array.isArray(data) && data.length > 0) {
-        setLevels(data);
-      }
-    });
-
-    window.loadGameData = (customLevels) => {
-      if (Array.isArray(customLevels) && customLevels.length > 0) {
-        console.log('[App] Custom levels dynamically set via window.loadGameData');
-        setLevels(customLevels);
-      }
-    };
-
-    return () => {
-      delete window.loadGameData;
-    };
+    fetch('./data/crossword_words.json')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setWordsPool(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load crossword_words.json', err);
+      });
   }, []);
 
-  const level = levels[0] || DEFAULT_LEVELS[0];
-
-  // Active (unmatched) tiles
-  const activeTiles = useMemo(() => {
-    return tiles.filter((t) => !matchedIds.includes(t.id));
-  }, [tiles, matchedIds]);
-
-  // Set of free tile IDs computed via Mahjong Solitaire rules
-  const freeTileIds = useMemo(() => {
-    const free = getFreeTiles(activeTiles);
-    return new Set(free.map((t) => t.id));
-  }, [activeTiles]);
-
-  // Available free matching pairs
-  const availableFreePairs = useMemo(() => {
-    return getAvailableFreePairs(activeTiles);
-  }, [activeTiles]);
-
-  /**
-   * Selects 3 question pairs for the round with learning personalization.
-   * Priority:
-   * 1. Questions that were failed in a previous round and haven't been retried yet.
-   * 2. Fresh questions from the pool that haven't been answered yet.
-   * 3. Any questions in pool if all have been used.
-   */
-  const selectQuestionsForRound = useCallback((currentFailed, currentRetried, currentUsed, pool) => {
-    const chosenQuestions = [];
-    const newRetried = new Set(currentRetried);
-    const newUsed = new Set(currentUsed);
-
-    // 1. Check for pending retries (questions failed but not yet retried)
-    const pendingRetryIds = Array.from(currentFailed).filter((id) => !currentRetried.has(id));
-    for (const qId of pendingRetryIds) {
-      if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
-      const found = pool.find((q) => q.id === qId);
-      if (found) {
-        chosenQuestions.push(found);
-        newRetried.add(qId);
-      }
-    }
-
-    // 2. Fill remaining quota with fresh unused questions
-    const unusedQuestions = pool.filter(
-      (q) => !newUsed.has(q.id) && !chosenQuestions.some((cq) => cq.id === q.id)
-    );
-    const shuffledUnused = [...unusedQuestions].sort(() => Math.random() - 0.5);
-
-    for (const q of shuffledUnused) {
-      if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
-      chosenQuestions.push(q);
-      newUsed.add(q.id);
-    }
-
-    // 3. Fallback: if pool exhausted, fill from anywhere in pool
-    if (chosenQuestions.length < PAIRS_PER_ROUND) {
-      const remainingPool = pool.filter((q) => !chosenQuestions.some((cq) => cq.id === q.id));
-      const shuffledRest = [...remainingPool].sort(() => Math.random() - 0.5);
-      for (const q of shuffledRest) {
-        if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
-        chosenQuestions.push(q);
-      }
-    }
-
-    return {
-      selectedQuestions: chosenQuestions,
-      updatedRetried: newRetried,
-      updatedUsed: newUsed
-    };
-  }, []);
-
-  /**
-   * Start a round (session)
-   */
-  const startRound = useCallback((targetRound, isNewGame = false) => {
-    const activeLevel = levels[0] || DEFAULT_LEVELS[0];
-    const fullPool = activeLevel.questions || activeLevel.vocabularyPool || [];
-
-    let currentFailed = failedQuestionIds;
-    let currentRetried = retriedQuestionIds;
-    let currentUsed = usedQuestionIds;
-
-    if (isNewGame) {
-      currentFailed = new Set();
-      currentRetried = new Set();
-      currentUsed = new Set();
-      setFailedQuestionIds(new Set());
-      setRetriedQuestionIds(new Set());
-      setMasteredQuestionIds(new Set());
-      setUsedQuestionIds(new Set());
-      setScore(0);
-      setXp(0);
-      setTimer(0);
-    }
-
-    // Select 3 adaptive questions
-    const { selectedQuestions, updatedRetried, updatedUsed } = selectQuestionsForRound(
-      currentFailed,
-      currentRetried,
-      currentUsed,
-      fullPool
-    );
-
-    setRetriedQuestionIds(updatedRetried);
-    setUsedQuestionIds(updatedUsed);
-
-    // Dynamically retrieve the layout template configured for this number of pairs
-    const currentLayout = getLayoutForPairs(PAIRS_PER_ROUND);
-
-    // Generate guaranteed-solvable layout with exactly PAIRS_PER_ROUND pairs
-    const generatedTiles = generateSolutionFirstPuzzle(
-      currentLayout,
-      selectedQuestions,
-      0
-    );
-
-    setRound(targetRound);
-    setTiles(generatedTiles);
-    setSelectedTileId(null);
-    setHintedPairIds([]);
-    setMismatchedIds([]);
-    setMatchedIds([]);
-    setJustUnlockedIds([]);
-    setMoveHistory([]);
-    setMascotMood('happy');
-    setHintsRemaining(3);
-    setIsVictory(false);
-    setIsGameActive(true);
-
-    if (targetRound === 1) {
-      setMascotTip(activeLevel.mascotTip || "Welcome! Match 3 pairs to clear Round 1!");
-    } else {
-      setMascotTip(`Round ${targetRound} of ${TOTAL_ROUNDS}! Look for open outer and top tiles! ✨`);
-    }
-
-    // Show temporary round announcement banner
-    setRoundTransitionBanner(`Round ${targetRound} of ${TOTAL_ROUNDS}`);
-    setTimeout(() => {
-      setRoundTransitionBanner(null);
-    }, 1500);
-
-  }, [levels, failedQuestionIds, retriedQuestionIds, usedQuestionIds, selectQuestionsForRound]);
-
-  /**
-   * Start fresh game from Main Menu
-   */
-  const handleStartGame = () => {
-    setScene('GAME');
-    startRound(1, true);
-  };
-
-  // Initialize Flutter Bridge & register incoming Flutter commands
+  // 2. Setup Flutter Bridge listeners (Ignored/disconnected for now)
+  /*
   useEffect(() => {
     flutterBridge.init({
-      gameId: 'stc_grade3_mahjong',
-      gameTitle: 'Grade 3 Vocabulary Mahjong',
-      debug: Boolean(showBridgeDebug)
+      gameId: 'stc_grade3_crossword',
+      gameTitle: 'Grade 3 Crossword Quest',
+      debug: showBridgeDebug
     });
 
-    const unbindPause = flutterBridge.on('PAUSE', () => {
+    const offPause = flutterBridge.on('PAUSE', () => {
       setShowPause(true);
+      setIsGameActive(false);
     });
-    const unbindResume = flutterBridge.on('RESUME', () => {
+
+    const offResume = flutterBridge.on('RESUME', () => {
       setShowPause(false);
+      setIsGameActive(true);
     });
-    const unbindRestart = flutterBridge.on('RESTART', () => {
-      setShowPause(false);
-      startRound(1, true);
+
+    const offRestart = flutterBridge.on('RESTART', () => {
+      startNewGame();
     });
 
     return () => {
-      unbindPause();
-      unbindResume();
-      unbindRestart();
+      offPause();
+      offResume();
+      offRestart();
     };
-  }, [showBridgeDebug, startRound]);
+  }, [showBridgeDebug]);
+  */
 
+  // Show temporary toast (e.g., "Already Found!", "Word Solved!")
+  const showToast = (text, type = 'info') => {
+    setMessageToast({ text, type });
+    setTimeout(() => {
+      setMessageToast(null);
+    }, 1500);
+  };
 
-  // Timer interval with AFK auto-pause safeguard
+  // Ref for wordsPool to guarantee freshest pool across async/callbacks
+  const wordsPoolRef = useRef(wordsPool);
   useEffect(() => {
-    let interval = null;
-    let lastActivityTime = Date.now();
+    wordsPoolRef.current = wordsPool;
+  }, [wordsPool]);
 
-    const resetActivity = () => {
-      lastActivityTime = Date.now();
-    };
+  // Set of word IDs already used across rounds to ensure brand new questions every round
+  const usedWordIdsRef = useRef(new Set());
 
-    window.addEventListener('pointerdown', resetActivity);
-    window.addEventListener('keydown', resetActivity);
+  // Additive Learning Pattern Store (Spaced Repetition):
+  // - scheduledFailedWordsRef: Map of wordId -> dueRound (scheduled for round +2 or +3)
+  // - masteredWordIdsRef: words solved with little/no error (spawned much less often)
+  // - roundWordErrorsRef: tracks errors per word in the current round
+  const scheduledFailedWordsRef = useRef(new Map());
+  const masteredWordIdsRef = useRef(new Set());
+  const roundWordErrorsRef = useRef({});
 
-    if (isGameActive && !isVictory && !showPause && scene === 'GAME') {
-      const afkTimeoutMs = (GAME_CONFIG.AFK_COOLDOWN_SECONDS || 30) * 1000;
-      interval = setInterval(() => {
-        if (Date.now() - lastActivityTime >= afkTimeoutMs) {
-          setShowPause(true);
-          return;
+  // Initialize learning stats from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('stc_crossword_learning_stats');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.scheduledFailed && typeof parsed.scheduledFailed === 'object') {
+          scheduledFailedWordsRef.current = new Map(
+            Object.entries(parsed.scheduledFailed).map(([k, v]) => [Number(k), Number(v)])
+          );
+        } else if (Array.isArray(parsed.failed)) {
+          // Migration from previous set: schedule for round + 2
+          scheduledFailedWordsRef.current = new Map(parsed.failed.map((id) => [Number(id), 2]));
         }
-        setTimer((prev) => prev + 1);
-      }, 1000);
-    }
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('pointerdown', resetActivity);
-      window.removeEventListener('keydown', resetActivity);
-    };
-  }, [isGameActive, isVictory, showPause, scene]);
-
-  // Handle Tile Selection & Learning Error Tracking
-  const handleTileClick = (tile) => {
-    // Strict Mahjong Check
-    if (!freeTileIds.has(tile.id)) {
-      audio.playMismatch();
-      setMascotTip("That tile is trapped! Free the top or outer tiles first.");
-      return;
-    }
-
-    // Pronounce English word (or partner word if image tile)
-    const pronounceWord = tile.word || tile.partnerWord;
-    if (pronounceWord) {
-      audio.speakWord(pronounceWord);
-    }
-
-    // First tile selection
-    if (!selectedTileId) {
-      setSelectedTileId(tile.id);
-      audio.playSelect();
-      setHintedPairIds([]);
-      if (tile.word) {
-        setMascotTip(`You selected "${tile.word}"! Look for its matching picture!`);
-      } else {
-        setMascotTip(`Look for the matching word for this picture!`);
+        if (Array.isArray(parsed.mastered)) masteredWordIdsRef.current = new Set(parsed.mastered);
       }
-      return;
+    } catch (e) {
+      console.warn('Could not load learning stats:', e);
     }
+  }, []);
 
-    // Deselect if clicking same tile
-    if (selectedTileId === tile.id) {
-      setSelectedTileId(null);
-      return;
+  const saveLearningStats = useCallback(() => {
+    try {
+      const scheduledObj = {};
+      scheduledFailedWordsRef.current.forEach((dueRound, id) => {
+        scheduledObj[id] = dueRound;
+      });
+      localStorage.setItem(
+        'stc_crossword_learning_stats',
+        JSON.stringify({
+          scheduledFailed: scheduledObj,
+          mastered: Array.from(masteredWordIdsRef.current)
+        })
+      );
+    } catch (e) {
+      console.warn('Could not save learning stats:', e);
     }
+  }, []);
 
-    const firstTile = tiles.find((t) => t.id === selectedTileId);
-    if (!firstTile) {
-      setSelectedTileId(tile.id);
-      return;
-    }
+  // Helper to schedule a failed/high-error word for the 2nd or 3rd round in the future
+  const scheduleWordForFutureReview = useCallback((wordId, fromRound) => {
+    // Pick 2 or 3 rounds delay
+    const delay = Math.random() < 0.5 ? 2 : 3;
+    const dueRound = fromRound + delay;
+    scheduledFailedWordsRef.current.set(wordId, dueRound);
+    masteredWordIdsRef.current.delete(wordId);
+  }, []);
 
-    // Check English matching pair
-    if (firstTile.pairId === tile.pairId) {
-      const previousFree = new Set(freeTileIds);
+  // Track state in refs to prevent stale closures in async handlers
+  const roundRef = useRef(round);
+  useEffect(() => {
+    roundRef.current = round;
+  }, [round]);
 
-      // Valid Match
-      audio.playMatch();
-      const newMatched = [...matchedIds, firstTile.id, tile.id];
-      setMatchedIds(newMatched);
-      setMoveHistory((prev) => [...prev, [firstTile.id, tile.id]]);
-      setSelectedTileId(null);
-      setHintedPairIds([]);
-      setScore((prev) => prev + 100);
-      setXp((prev) => prev + 100);
-      setMascotMood('correct');
+  useEffect(() => {
+    heartsRef.current = hearts;
+  }, [hearts]);
 
-      // Extract raw question ID (e.g. from pair_0_e1 -> e1)
-      const rawQuestionId = tile.pairId.replace(/^pair_\d+_/, '');
+  const scoreRef = useRef(score);
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
-      // Check if this was a previously failed/retried question that is now mastered!
-      let wasRetry = false;
-      if (failedQuestionIds.has(rawQuestionId)) {
-        wasRetry = true;
-        setFailedQuestionIds((prev) => {
-          const next = new Set(prev);
-          next.delete(rawQuestionId);
-          return next;
-        });
-        setMasteredQuestionIds((prev) => {
-          const next = new Set(prev);
-          next.add(rawQuestionId);
-          return next;
-        });
+  // Track if round transition is already in progress to prevent duplicate triggers
+  const isAdvancingRef = useRef(false);
+
+  // Start or transition to a specific round with fresh random word spawns
+  const startRound = useCallback(
+    (roundNum) => {
+      const currentPool = wordsPoolRef.current;
+      if (!currentPool || currentPool.length === 0) {
+        console.warn('wordsPool is empty, cannot start round');
+        isAdvancingRef.current = false;
+        return;
       }
 
-      // Calculate newly uncovered tiles
-      const nextActiveTiles = tiles.filter((t) => !newMatched.includes(t.id));
-      const nextFreeTiles = getFreeTiles(nextActiveTiles);
-      const newlyFreed = nextFreeTiles
-        .filter((t) => !previousFree.has(t.id))
-        .map((t) => t.id);
+      // Explicitly sync round state with roundNum
+      const targetRound = typeof roundNum === 'number' ? roundNum : 1;
+      setRound(targetRound);
+      roundRef.current = targetRound;
 
-      const pairName = (firstTile.word || firstTile.partnerWord || tile.word || tile.partnerWord);
-      const educationalHint = firstTile.hint || tile.hint;
-      
-      if (wasRetry) {
-        setMascotMood('celebrating');
-        if (educationalHint) {
-          setMascotTip(`🌟 Mastered "${pairName}"! (+100 XP) 💡 ${educationalHint}`);
+      // Reset round word errors for accurate mastery evaluation
+      roundWordErrorsRef.current = {};
+
+      // Determine due priority words (scheduled for this round or earlier) and cooling-down words
+      const duePriorityIds = new Set();
+      const coolingDownIds = new Set();
+
+      scheduledFailedWordsRef.current.forEach((dueRound, id) => {
+        if (dueRound <= targetRound) {
+          duePriorityIds.add(id);
         } else {
-          setMascotTip(`🌟 Amazing mastery! You solved "${pairName}" correctly! (+100 XP)`);
+          // Do NOT re-spawn in right next round! Cooldown until round +2 or +3
+          coolingDownIds.add(id);
         }
-        audio.speakWord(`Great job! You mastered ${pairName}! ${educationalHint || ''}`);
-      } else if (newlyFreed.length > 0) {
-        setJustUnlockedIds(newlyFreed);
-        setTimeout(() => setJustUnlockedIds([]), 900);
-        if (educationalHint) {
-          setMascotTip(`✨ "${pairName}" matched! (+100 XP) 💡 ${educationalHint}`);
-        } else {
-          setMascotTip(`Brilliant! "${pairName}" matched! (+100 XP) ✨`);
-        }
-        audio.speakWord(`${pairName}. ${educationalHint || ''}`);
-      } else {
-        if (educationalHint) {
-          setMascotTip(`✨ "${pairName}" matched! (+100 XP) 💡 ${educationalHint}`);
-        } else {
-          setMascotTip(`Superb! "${pairName}" is a correct match! (+100 XP) ✨`);
-        }
-        audio.speakWord(`${pairName}. ${educationalHint || ''}`);
-      }
-
-      // Check Round or Game Victory
-      if (newMatched.length >= tiles.length) {
-        if (round < TOTAL_ROUNDS) {
-          // Progress to Next Round
-          audio.playMatch();
-          setMascotMood('celebrating');
-          setMascotTip(`🎉 Round ${round} Complete! Preparing Round ${round + 1}...`);
-
-          setTimeout(() => {
-            startRound(round + 1, false);
-          }, 1200);
-        } else {
-          // Completed all 3 rounds!
-          setIsVictory(true);
-          setIsGameActive(false);
-          audio.playFanfare();
-          setMascotMood('celebrating');
-          setMascotTip('🎉 Outstanding work! You completed all 3 Mahjong rounds!');
-
-          const starTimes = level.starTimes || { threeStars: 90, twoStars: 150 };
-          const earnedStars = timer <= starTimes.threeStars ? 3 : timer <= starTimes.twoStars ? 2 : 1;
-          const timeBonus = timer < starTimes.threeStars ? Math.max(0, (starTimes.threeStars - timer) * 5) : 0;
-          const totalFinalScore = score + 100 + timeBonus;
-          const totalFinalXp = xp + 100;
-
-          setVictoryStats({
-            stars: earnedStars,
-            timeBonus,
-            finalScore: totalFinalScore,
-            finalXp: totalFinalXp
-          });
-
-          // Dispatch LEVEL_COMPLETED event to Flutter
-          flutterBridge.sendLevelCompleted(totalFinalScore);
-        }
-      }
-    } else {
-      // Mismatch - Penalize XP (-5, min 0), Pedagogical Scaffolding & Adaptive Failure Tracking
-      audio.playMismatch();
-      setMismatchedIds([firstTile.id, tile.id]);
-      setMascotMood('thinking');
-      setXp((prev) => Math.max(0, prev - 5));
-
-      const w1 = firstTile.word || firstTile.partnerWord || 'item';
-      const w2 = tile.word || tile.partnerWord || 'item';
-
-      // Pedagogical Contextual Scaffolding Hint Generation:
-      let feedbackTip = '';
-      if (firstTile.relation && tile.relation && firstTile.relation === tile.relation) {
-        // Both tiles share the same category (e.g. Opposites or Nature)
-        feedbackTip = `🤔 "${w1}" and "${w2}" are both ${firstTile.relation}, but not a matching pair. Look for ${w1}'s partner! (-5 XP)`;
-      } else if (firstTile.hint) {
-        // Provide educational clue from the first tile's metadata
-        feedbackTip = `💡 Clue for "${w1}": ${firstTile.hint} (-5 XP)`;
-      } else if (firstTile.relation) {
-        feedbackTip = `🤔 "${w1}" (${firstTile.relation}) and "${w2}" do not match. Try pairing "${w1}" with its ${firstTile.relation} partner! (-5 XP)`;
-      } else {
-        feedbackTip = `"${w1}" and "${w2}" are not a pair. Check the pictures and words carefully! (-5 XP)`;
-      }
-
-      setMascotTip(feedbackTip);
-
-      // Extract raw question IDs for adaptive learning spaced repetition
-      const rawFirstId = firstTile.pairId.replace(/^pair_\d+_/, '');
-      const rawSecondId = tile.pairId.replace(/^pair_\d+_/, '');
-
-      setFailedQuestionIds((prev) => {
-        const next = new Set(prev);
-        if (rawFirstId) next.add(rawFirstId);
-        if (rawSecondId) next.add(rawSecondId);
-        return next;
       });
 
-      // Clear selection after feedback duration
-      setTimeout(() => {
-        setMismatchedIds([]);
-        setSelectedTileId(null);
-      }, 700);
-    }
-  };
+      // Exclude recently used words AND words cooling down for future rounds
+      const effectiveExcludeIds = new Set([...usedWordIdsRef.current, ...coolingDownIds]);
 
-  // Intelligent Hint
-  const handleHint = () => {
-    if (hintsRemaining <= 0) {
-      setMascotTip("No hints left for this round, but you can do it!");
-      return;
-    }
-
-    const bestMove = findSolvableHint(activeTiles);
-    if (bestMove) {
-      const [tileA, tileB] = bestMove;
-      audio.playHint();
-      setHintedPairIds([tileA.id, tileB.id]);
-      setHintsRemaining((prev) => prev - 1);
-      
-      const educationalTip = tileA.hint || tileB.hint;
-      if (educationalTip) {
-        setMascotTip(`💡 "${tileA.word || tileA.partnerWord}" ↔ "${tileB.word || tileB.partnerWord}": ${educationalTip}`);
-      } else {
-        setMascotTip(`💡 Hint: "${tileA.word || tileA.partnerWord}" ↔ "${tileB.word || tileB.partnerWord}" (${tileA.relation}) are free to match!`);
+      // If used word IDs pool is nearing exhaustion, recycle pool for unlimited gameplay
+      if (usedWordIdsRef.current.size >= Math.max(1, currentPool.length - 6)) {
+        usedWordIdsRef.current.clear();
       }
-      audio.speakWord(`${tileA.word || tileA.partnerWord} and ${tileB.word || tileB.partnerWord}`);
-    } else {
-      setMascotTip("No direct moves left on the open sides. Click 'Smart Reorder' to continue!");
-    }
-  };
 
-  // Undo Last Move
-  const handleUndo = () => {
-    if (moveHistory.length === 0) return;
-    const lastMove = moveHistory[moveHistory.length - 1];
-    setMatchedIds((prev) => prev.filter((id) => !lastMove.includes(id)));
-    setMoveHistory((prev) => prev.slice(0, -1));
-    setSelectedTileId(null);
-    setHintedPairIds([]);
-    setScore((prev) => Math.max(0, prev - 100));
-    setXp((prev) => Math.max(0, prev - 100));
-    setMascotTip("↩️ Move undone! Plan your removal order carefully!");
-  };
-
-  // Smart Re-Align
-  const handleSmartReorder = () => {
-    audio.playShuffle();
-    const activePositions = activeTiles.map((t) => ({ x: t.x, y: t.y, z: t.z }));
-
-    const activePairMap = new Map();
-    activeTiles.forEach((t) => {
-      if (!activePairMap.has(t.pairId)) {
-        activePairMap.set(t.pairId, []);
-      }
-      activePairMap.get(t.pairId).push(t);
-    });
-
-    const activeVocab = [];
-    activePairMap.forEach((tilesInPair) => {
-      if (tilesInPair.length === 2) {
-        activeVocab.push({
-          id: tilesInPair[0].pairId,
-          word1: tilesInPair[0].word,
-          icon1: tilesInPair[0].icon,
-          word2: tilesInPair[1].word,
-          icon2: tilesInPair[1].icon,
-          relation: tilesInPair[0].relation
-        });
-      }
-    });
-
-    if (activeVocab.length > 0) {
-      const regeneratedActiveTiles = generateSolutionFirstPuzzle(
-        activePositions,
-        activeVocab
+      // Pick words count (e.g. 4 for round 1, ramping up to 6)
+      const targetCount = Math.min(4 + Math.floor((targetRound - 1) / 2), 6);
+      let generated = generateCrosswordPuzzle(
+        currentPool,
+        targetCount,
+        effectiveExcludeIds,
+        {
+          priorityWordIds: duePriorityIds,
+          masteredWordIds: masteredWordIdsRef.current
+        }
       );
 
-      const newTiles = tiles.map((t) => {
-        if (matchedIds.includes(t.id)) return t;
-        const matchingRegen = regeneratedActiveTiles.shift();
-        return matchingRegen || t;
-      });
+      if (!generated) {
+        usedWordIdsRef.current.clear();
+        generated = generateCrosswordPuzzle(
+          currentPool,
+          targetCount,
+          coolingDownIds,
+          {
+            priorityWordIds: duePriorityIds,
+            masteredWordIds: masteredWordIdsRef.current
+          }
+        );
+      }
 
-      setTiles(newTiles);
+      if (generated) {
+        // Record newly placed word IDs so subsequent rounds get completely fresh questions
+        generated.words.forEach((w) => {
+          if (w.id) usedWordIdsRef.current.add(w.id);
+        });
+
+        isAdvancingRef.current = false;
+        setPuzzle(generated);
+        setSolvedWords([]);
+        setRevealedLetters({});
+
+        // Completion tracking system:
+        // Set total spawned words integer counter
+        const spawnedCount = generated.words.length;
+        setTotalSpawnWordCount(spawnedCount);
+        totalSpawnWordCountRef.current = spawnedCount;
+
+        // Reset solved words flagCounter to 0
+        setFlagCounter(0);
+        flagCounterRef.current = 0;
+
+        // Collect all distinct letters across the puzzle
+        const puzzleLetters = Array.from(
+          new Set(generated.words.flatMap((w) => w.clean.split('')))
+        );
+
+        // Add extra distractor/decoy alphabets to keep the game challenging and confusing
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        const unusedLetters = alphabet.filter((ch) => !puzzleLetters.includes(ch));
+        const distractorCount = GAME_CONFIG.EXTRA_DISTRACTOR_LETTERS || 3;
+        const shuffledUnused = [...unusedLetters].sort(() => Math.random() - 0.5);
+        const distractors = shuffledUnused.slice(0, distractorCount);
+
+        const allLettersInPuzzle = Array.from(new Set([...puzzleLetters, ...distractors])).sort();
+        setKeyboardLetters(allLettersInPuzzle);
+        setActiveWord(generated.words[0]);
+        setHintsRemaining(GAME_CONFIG.HINTS_PER_ROUND || 3);
+        setHearts(GAME_CONFIG.MAX_HEARTS || 5);
+        heartsRef.current = GAME_CONFIG.MAX_HEARTS || 5;
+        setMascotMood('happy');
+        setMascotTip(`Round ${targetRound}: Solve all ${spawnedCount} words to clear the round!`);
+      } else {
+        isAdvancingRef.current = false;
+      }
+    },
+    []
+  );
+
+  // When round changes / all words completed: advance to next round with fresh random questions!
+  // Unlimited rounds continue until the player runs out of hearts (Game Over)
+  const handleNextRound = useCallback(() => {
+    if (isAdvancingRef.current) return;
+    isAdvancingRef.current = true;
+
+    setRound((prevRound) => {
+      const nextR = prevRound + 1;
+      roundRef.current = nextR;
+      showToast(`🎉 Round Complete! Round ${nextR} Starting...`, 'success');
+      if (typeof audio.playVictory === 'function') audio.playVictory();
+
+      // Trigger next round generation with fresh wordspawns
+      setTimeout(() => {
+        startRound(nextR);
+      }, 400);
+
+      return nextR;
+    });
+  }, [startRound]);
+
+  const handleNextRoundRef = useRef(handleNextRound);
+  useEffect(() => {
+    handleNextRoundRef.current = handleNextRound;
+  }, [handleNextRound]);
+
+  // Proceed to next round from RoundCompleteModal
+  const handleProceedToNextRound = useCallback(() => {
+    setShowRoundComplete(false);
+    handleNextRound();
+  }, [handleNextRound]);
+
+  // Start fresh game
+  const startNewGame = useCallback(() => {
+    isAdvancingRef.current = false;
+    usedWordIdsRef.current.clear();
+    setRound(1);
+    roundRef.current = 1;
+    setScore(0);
+    setHearts(GAME_CONFIG.MAX_HEARTS || 5);
+    heartsRef.current = GAME_CONFIG.MAX_HEARTS || 5;
+    setFlagCounter(0);
+    flagCounterRef.current = 0;
+    setShowRoundComplete(false);
+    setShowGameOver(false);
+    setIsVictory(false);
+    setShowPause(false);
+    setScene('GAME');
+    setIsGameActive(true);
+    audio.startBGM();
+    startRound(1);
+    // flutterBridge.sendGameStart();
+  }, [startRound]);
+
+  // Handle single letter click from LetterKeyboard:
+  // If letter matches any position in activeWord (or any puzzle word), reveal it!
+  const handleLetterClick = (letter) => {
+    if (!puzzle || !letter) return;
+    const cleanLetter = letter.toUpperCase();
+
+    // Check against activeWord first, or against all unsolved words in the crossword
+    let newlyRevealed = 0;
+    const nextRevealed = { ...revealedLetters };
+
+    // Check if the letter exists in activeWord
+    let matchedInActive = false;
+    if (activeWord && !solvedWords.includes(activeWord.clean)) {
+      for (let i = 0; i < activeWord.clean.length; i++) {
+        if (activeWord.clean[i] === cleanLetter) {
+          const r = activeWord.direction === 'across' ? activeWord.startRow : activeWord.startRow + i;
+          const c = activeWord.direction === 'across' ? activeWord.startCol + i : activeWord.startCol;
+          const key = `${r},${c}`;
+          if (!nextRevealed[key]) {
+            nextRevealed[key] = cleanLetter;
+            newlyRevealed++;
+            matchedInActive = true;
+          }
+        }
+      }
     }
 
-    setSelectedTileId(null);
-    setHintedPairIds([]);
-    setMascotTip("✨ Solvable rearrangement complete! New free pairs are now open!");
+    // If not in active word (or active word already has it), check other unsolved words
+    if (newlyRevealed === 0) {
+      puzzle.words.forEach((w) => {
+        if (!solvedWords.includes(w.clean)) {
+          for (let i = 0; i < w.clean.length; i++) {
+            if (w.clean[i] === cleanLetter) {
+              const r = w.direction === 'across' ? w.startRow : w.startRow + i;
+              const c = w.direction === 'across' ? w.startCol + i : w.startCol;
+              const key = `${r},${c}`;
+              if (!nextRevealed[key]) {
+                nextRevealed[key] = cleanLetter;
+                newlyRevealed++;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    if (newlyRevealed > 0) {
+      // Letter found!
+      audio.playMatch();
+      setRevealedLetters(nextRevealed);
+
+      // Check which words are now completely revealed
+      const newlyCompletedWords = [];
+      puzzle.words.forEach((w) => {
+        if (!solvedWords.includes(w.clean)) {
+          let complete = true;
+          for (let i = 0; i < w.clean.length; i++) {
+            const r = w.direction === 'across' ? w.startRow : w.startRow + i;
+            const c = w.direction === 'across' ? w.startCol + i : w.startCol;
+            if (!nextRevealed[`${r},${c}`]) {
+              complete = false;
+              break;
+            }
+          }
+          if (complete) {
+            newlyCompletedWords.push(w.clean);
+          }
+        }
+      });
+
+      const nextSolved = [...solvedWords, ...newlyCompletedWords];
+      if (newlyCompletedWords.length > 0) {
+        setSolvedWords(nextSolved);
+
+        // Additive Learning Pattern:
+        // Evaluate errors for each newly completed word.
+        // Words solved with <= 1 error graduate to mastered (spawned less often).
+        // Words with multiple errors are scheduled for reinforcement in the 2nd or 3rd round.
+        const currentRound = roundRef.current || 1;
+        puzzle.words.forEach((pw) => {
+          if (newlyCompletedWords.includes(pw.clean) && pw.id) {
+            const errs = roundWordErrorsRef.current[pw.clean] || 0;
+            if (errs <= 1) {
+              masteredWordIdsRef.current.add(pw.id);
+              scheduledFailedWordsRef.current.delete(pw.id);
+            } else {
+              scheduleWordForFutureReview(pw.id, currentRound);
+            }
+          }
+        });
+        saveLearningStats();
+
+        // Completion tracking: increase flagCounter when each word is solved
+        const newFlagCounter = flagCounterRef.current + newlyCompletedWords.length;
+        flagCounterRef.current = newFlagCounter;
+        setFlagCounter(newFlagCounter);
+
+        const earned = (GAME_CONFIG.SCORE_PER_WORD || 3) * newlyCompletedWords.length;
+        const newScore = score + earned;
+        setScore(newScore);
+        // flutterBridge.sendScore(newScore);
+
+        showToast(
+          `🎉 Word Solved: ${newlyCompletedWords.join(', ')}! +${earned} Points`,
+          'success'
+        );
+        setMascotMood('celebrating');
+        setMascotTip(`Awesome! Solved ${newlyCompletedWords[0]}! (${newFlagCounter}/${totalSpawnWordCountRef.current})`);
+
+        // Switch to next unsolved word
+        const nextUnsolved = puzzle.words.find((w) => !nextSolved.includes(w.clean));
+        if (nextUnsolved) {
+          setActiveWord(nextUnsolved);
+        }
+
+        // Completion check: all words solved -> Show Round Completed Pop-up!
+        if (newFlagCounter >= totalSpawnWordCountRef.current) {
+          setSolvedWords(puzzle.words.map((w) => w.clean));
+          if (typeof audio.playVictory === 'function') audio.playVictory();
+          setRoundCompleteData({
+            round: roundRef.current,
+            wordsCount: totalSpawnWordCountRef.current,
+            words: puzzle.words.map((w) => w.clean),
+            score: newScore
+          });
+          setShowRoundComplete(true);
+          return;
+        }
+      } else {
+        // Individual letter hit (points are awarded for complete word matches)
+        showToast(`Letter "${cleanLetter}" revealed!`, 'success');
+        setMascotMood('happy');
+      }
+
+      // Fallback check if all cells are filled
+      let allCellsFilled = true;
+      for (let r = 0; r < puzzle.rows; r++) {
+        for (let c = 0; c < puzzle.cols; c++) {
+          if (puzzle.matrix[r][c] && !nextRevealed[`${r},${c}`]) {
+            allCellsFilled = false;
+            break;
+          }
+        }
+        if (!allCellsFilled) break;
+      }
+
+      if (allCellsFilled && flagCounterRef.current < totalSpawnWordCountRef.current) {
+        flagCounterRef.current = totalSpawnWordCountRef.current;
+        setFlagCounter(totalSpawnWordCountRef.current);
+        setSolvedWords(puzzle.words.map((w) => w.clean));
+        if (typeof audio.playVictory === 'function') audio.playVictory();
+        setRoundCompleteData({
+          round: roundRef.current,
+          wordsCount: totalSpawnWordCountRef.current,
+          words: puzzle.words.map((w) => w.clean),
+          score: score
+        });
+        setShowRoundComplete(true);
+      }
+    } else {
+      // Not present or already revealed -> Wrong letter guess!
+      // Additive Learning: record mistake on the word being attempted
+      if (activeWord) {
+        roundWordErrorsRef.current[activeWord.clean] =
+          (roundWordErrorsRef.current[activeWord.clean] || 0) + 1;
+      }
+
+      audio.playMismatch();
+      setHeartShake(true);
+      setTimeout(() => setHeartShake(false), 450);
+
+      setHearts((prevHearts) => {
+        const nextHearts = Math.max(0, prevHearts - 1);
+        heartsRef.current = nextHearts;
+        if (nextHearts <= 0) {
+          // Out of hearts -> Game Over!
+          // Additive Learning: schedule all remaining unsolved words for the next 2nd or 3rd round
+          const curRound = roundRef.current || 1;
+          puzzle.words.forEach((pw) => {
+            if (!solvedWords.includes(pw.clean) && pw.id) {
+              scheduleWordForFutureReview(pw.id, curRound);
+            }
+          });
+          saveLearningStats();
+
+          setIsGameActive(false);
+          audio.stopBGM();
+          if (typeof audio.playGameOver === 'function') {
+            audio.playGameOver();
+          }
+          setShowGameOver(true);
+          return 0;
+        }
+        showToast(`❌ Letter "${cleanLetter}" not in words! -1 Heart (${nextHearts} left) ❤️`, 'error');
+        setMascotMood('thinking');
+        return nextHearts;
+      });
+    }
   };
 
-  // Dynamic Tile Sizing based on the longest word in the active round
-  const maxWordLength = useMemo(() => {
-    let maxLen = 0;
-    tiles.forEach((t) => {
-      if (t.word && t.word.length > maxLen) {
-        maxLen = t.word.length;
+  // Hint button: reveal 1 random unrevealed letter of the active word
+  const handleUseHint = () => {
+    if (hintsRemaining <= 0 || !puzzle || !activeWord) return;
+
+    // Find all unrevealed coordinates of activeWord
+    const unrevealedCoords = [];
+    for (let i = 0; i < activeWord.clean.length; i++) {
+      const r = activeWord.direction === 'across' ? activeWord.startRow : activeWord.startRow + i;
+      const c = activeWord.direction === 'across' ? activeWord.startCol + i : activeWord.startCol;
+      const key = `${r},${c}`;
+      if (!solvedWords.includes(activeWord.clean) && !revealedLetters[key]) {
+        unrevealedCoords.push({ r, c, key, char: activeWord.clean[i] });
       }
-    });
-    return Math.max(maxLen, 6); // default baseline 6 chars
-  }, [tiles]);
+    }
 
-  // Wide landscape tile geometry with increased width and dynamic expansion for long words
-  const tileGeometry = useMemo(() => {
-    const configSize = GAME_CONFIG.TILE_SIZE || {};
-    const baseW = configSize.BASE_WIDTH || 280;
-    const baseH = configSize.BASE_HEIGHT || 220;
-    const maxW = configSize.MAX_WIDTH || 400;
-    const unitXRatio = configSize.UNIT_X_RATIO || 0.48;
-    const unitYVal = configSize.UNIT_Y || 120;
+    if (unrevealedCoords.length === 0) {
+      // Find any unsolved word cell across the whole puzzle
+      puzzle.words.forEach((w) => {
+        if (!solvedWords.includes(w.clean)) {
+          for (let i = 0; i < w.clean.length; i++) {
+            const r = w.direction === 'across' ? w.startRow : w.startRow + i;
+            const c = w.direction === 'across' ? w.startCol + i : w.startCol;
+            const key = `${r},${c}`;
+            if (!revealedLetters[key]) {
+              unrevealedCoords.push({ r, c, key, char: w.clean[i] });
+            }
+          }
+        }
+      });
+    }
 
-    const extraWidth = Math.max(0, maxWordLength - 6) * 16;
-    const tileWidth = Math.min(maxW, baseW + extraWidth);
-    const tileHeight = baseH;
-    const unitX = Math.round(tileWidth * unitXRatio);
-    const unitY = unitYVal;
-    return { tileWidth, tileHeight, unitX, unitY };
-  }, [maxWordLength]);
+    if (unrevealedCoords.length > 0) {
+      const picked = unrevealedCoords[Math.floor(Math.random() * unrevealedCoords.length)];
+      audio.playHint();
+      setHintsRemaining((h) => h - 1);
+      const nextRevealed = {
+        ...revealedLetters,
+        [picked.key]: picked.char
+      };
+      setRevealedLetters(nextRevealed);
+      setMascotMood('happy');
+      setMascotTip(`Hint revealed letter "${picked.char}"!`);
 
-  // Board layout bounds based on configured pair count
-  const sessionLayout = getLayoutForPairs(PAIRS_PER_ROUND);
-  const minX = Math.min(...sessionLayout.map((s) => s.x));
-  const maxX = Math.max(...sessionLayout.map((s) => s.x));
-  const minY = Math.min(...sessionLayout.map((s) => s.y));
-  const maxY = Math.max(...sessionLayout.map((s) => s.y));
-  const maxZ = Math.max(...sessionLayout.map((s) => s.z));
+      // Check if any word got completed by this hint
+      const newlyCompletedWords = [];
+      puzzle.words.forEach((w) => {
+        if (!solvedWords.includes(w.clean)) {
+          let complete = true;
+          for (let i = 0; i < w.clean.length; i++) {
+            const r = w.direction === 'across' ? w.startRow : w.startRow + i;
+            const c = w.direction === 'across' ? w.startCol + i : w.startCol;
+            if (!nextRevealed[`${r},${c}`]) {
+              complete = false;
+              break;
+            }
+          }
+          if (complete) {
+            newlyCompletedWords.push(w.clean);
+          }
+        }
+      });
 
-  const boardWidth = (maxX - minX) * tileGeometry.unitX + tileGeometry.tileWidth + maxZ * 8;
-  const boardHeight = (maxY - minY) * tileGeometry.unitY + tileGeometry.tileHeight + maxZ * 16;
+      if (newlyCompletedWords.length > 0) {
+        const nextSolved = [...solvedWords, ...newlyCompletedWords];
+        setSolvedWords(nextSolved);
 
-  const isDeadEnd = activeTiles.length > 0 && availableFreePairs.length === 0 && !isVictory;
+        // Completion tracking: increase flagCounter when words are solved via hint
+        const newFlagCounter = flagCounterRef.current + newlyCompletedWords.length;
+        flagCounterRef.current = newFlagCounter;
+        setFlagCounter(newFlagCounter);
+
+        showToast(
+          `🎉 Word Solved: ${newlyCompletedWords.join(', ')}! (${newFlagCounter}/${totalSpawnWordCountRef.current})`,
+          'success'
+        );
+
+        // Completion check: all words solved via hint -> Show Round Completed Pop-up!
+        if (newFlagCounter >= totalSpawnWordCountRef.current) {
+          setSolvedWords(puzzle.words.map((w) => w.clean));
+          if (typeof audio.playVictory === 'function') audio.playVictory();
+          setRoundCompleteData({
+            round: roundRef.current,
+            wordsCount: totalSpawnWordCountRef.current,
+            words: puzzle.words.map((w) => w.clean),
+            score: score
+          });
+          setShowRoundComplete(true);
+        }
+      }
+    }
+  };
+
+  // Shuffle letters on the keyboard
+  const handleShuffleLetters = () => {
+    setKeyboardLetters((prev) => [...prev].sort(() => Math.random() - 0.5));
+  };
+
+  // Top Left Toolbar Buttons
+  const topButtons = [
+    {
+      id: 'pause',
+      icon: '⏸️',
+      title: 'Pause Game',
+      onClick: () => {
+        audio.playSelect();
+        setShowPause(true);
+        setIsGameActive(false);
+      }
+    },
+    {
+      id: 'settings',
+      icon: '⚙️',
+      title: 'Settings',
+      onClick: () => setShowSettings(true)
+    }
+  ];
 
   return (
     <AspectRatioContainer>
-      {/* Cartoon Himalayan Background */}
-      <HimalayanBackground themeGradient={level.bgGradient} />
+      {/* Background with subtle animation */}
+      <HimalayanBackground />
 
       {/* Main Menu Scene */}
       {scene === 'MENU' && (
-        <>
-          {/* Top Left Toolbar: 1 Button (Settings) */}
-          <GlobalTopBar
-            buttons={[
-              {
-                id: 'settings',
-                icon: '⚙️',
-                title: 'Settings',
-                onClick: () => setShowSettings(true)
-              }
-            ]}
-          />
-
-          <MainMenu
-            headerBadge={level.headerBadge}
-            title={level.title}
-            subtitle={level.subtitle}
-            onPlay={handleStartGame}
-          />
-        </>
-      )}
-
-      {/* How To Play Tutorial Modal */}
-      {showHowToPlay && (
-        <HowToPlayModal onClose={() => setShowHowToPlay(false)} />
-      )}
-
-      {/* Settings Modal with [Clickable Circular Icon] + Sliders */}
-      {showSettings && (
-        <SettingsModal
-          onClose={() => setShowSettings(false)}
-          sfxVolume={sfxVolume}
-          setSfxVolume={setSfxVolume}
-          sfxMuted={sfxMuted}
-          setSfxMuted={setSfxMuted}
-          musicVolume={musicVolume}
-          setMusicVolume={setMusicVolume}
-          musicMuted={musicMuted}
-          setMusicMuted={setMusicMuted}
+        <MainMenu
+          onPlay={startNewGame}
+          onStartGame={startNewGame}
+          onHowToPlay={() => setShowHowToPlay(true)}
+          onSettings={() => setShowSettings(true)}
         />
       )}
 
-      {/* Active Game Scene */}
+      {/* Crossword Gameplay Scene */}
       {scene === 'GAME' && (
-        <>
-          {/* Top Left Toolbar: Standard 2-Button Mapping (Slot 0: Pause, Slot 1: Settings) */}
-          <GlobalTopBar
-            buttons={[
-              {
-                id: 'pause',
-                icon: '⏸️',
-                title: 'Pause Game',
-                onClick: () => setShowPause(true)
-              },
-              {
-                id: 'settings',
-                icon: '⚙️',
-                title: 'Settings',
-                onClick: () => setShowSettings(true)
-              }
-            ]}
-          />
-
-          {/* Pause Modal */}
-          {showPause && (
-            <PauseModal
-              onResume={() => setShowPause(false)}
-              onRestart={() => {
-                setShowPause(false);
-                startRound(1, true);
-              }}
-              onQuit={() => {
-                setShowPause(false);
-                setScene('MENU');
-              }}
-            />
-          )}
-
-          {/* Top Header Bar */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            zIndex: 10,
+            overflow: 'hidden'
+          }}
+        >
+          {/* Top HUD Bar (Aligned to Y: 100px as per UI Layout Rule) */}
           <div
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '120px',
-              padding: '16px 44px',
               display: 'flex',
               alignItems: 'center',
-              zIndex: 80,
-              background: 'linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.45) 75%, rgba(0,0,0,0) 100%)',
+              justifyContent: 'space-between',
+              padding: '60px 44px 20px 60px',
+              zIndex: 120, // Layer 1: UI_BUTTONS
               boxSizing: 'border-box'
             }}
           >
-            {/* Left: Round & Open Pairs (positioned next to the pause/settings toolbar buttons) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82, marginLeft: '215px' }}>
-              <div
-                style={{
-                  width: '135px',
-                  boxSizing: 'border-box',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
-                  border: '3px solid #7dd3fc'
-                }}
-              >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#e0f2fe', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  ROUND
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
-                  {round} / {TOTAL_ROUNDS}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  width: '140px',
-                  boxSizing: 'border-box',
-                  background: availableFreePairs.length > 0 ? '#ecfdf5' : '#fef2f2',
-                  border: `3px solid ${availableFreePairs.length > 0 ? '#10b981' : '#ef4444'}`,
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-                }}
-                title="Playable open pairs right now"
-              >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#047857' : '#b91c1c', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  OPEN PAIRS
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
-                  {availableFreePairs.length}
-                </div>
-              </div>
+            {/* Top-Left Action Buttons (Slots: 0 -> (100, 100), 1 -> (220, 100), Spacing 120px, Size 80x80) */}
+            <div style={{ display: 'flex', gap: '40px', alignItems: 'center', marginTop: '-100px' }}>
+              {topButtons.map((btn) => (
+                <button
+                  key={btn.id}
+                  onClick={btn.onClick}
+                  title={btn.title}
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                    border: '4px solid rgba(255, 255, 255, 0.35)',
+                    color: '#ffffff',
+                    fontSize: '34px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                >
+                  {btn.icon}
+                </button>
+              ))}
             </div>
 
-            {/* Center: Objective / Round Progress Banner */}
+            {/* Top-Centered Words Completion Tracker (Enlarged 2-Line Text) */}
             <div
               style={{
                 position: 'absolute',
-                top: '22px',
                 left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(255, 255, 255, 0.98)',
-                padding: '14px 38px',
-                borderRadius: '50px',
-                border: '4px solid #facc15',
-                boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
+                top: '120px',
+                transform: 'translate(-50%, -50%)',
+                background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                color: '#ffffff',
+                padding: '12px 38px',
+                borderRadius: '36px',
+                boxShadow: '0 12px 32px rgba(16, 185, 129, 0.45)',
+                border: '5px solid #6ee7b7',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: '14px',
-                maxWidth: '750px',
-                zIndex: 82
+                justifyContent: 'center',
+                whiteSpace: 'nowrap',
+                zIndex: 125
               }}
+              title={`Completion Tracker: ${flagCounter} of ${totalSpawnWordCount} words solved`}
             >
-              <span style={{ fontSize: '32px' }}>🎯</span>
-              <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
-                Round {round} of {TOTAL_ROUNDS} • Match {PAIRS_PER_ROUND} Pairs!
-              </span>
-            </div>
-
-            {/* Right: Essential HUD (XP Bar, Score, Time) */}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82 }}>
-              {/* XP System Widget */}
+              {/* Line 1: WORDS */}
               <div
                 style={{
-                  minWidth: '180px',
-                  boxSizing: 'border-box',
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-                  padding: '8px 14px',
-                  borderRadius: '20px',
-                  boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
-                  border: '3px solid #c4b5fd',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '3px'
+                  fontSize: '26px',
+                  fontWeight: '900',
+                  letterSpacing: '2.5px',
+                  textTransform: 'uppercase',
+                  opacity: 0.95,
+                  lineHeight: 1.1
                 }}
-                title={`Experience Points: ${xp} XP (Level ${Math.floor(xp / 300) + 1})`}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '12px', fontWeight: '900', color: '#ede9fe', letterSpacing: '0.8px' }}>
-                    ⚡ LV {Math.floor(xp / 300) + 1}
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: '900', color: '#fef08a', fontVariantNumeric: 'tabular-nums' }}>
-                    {xp} XP
-                  </div>
-                </div>
-                {/* XP Level Progress Bar */}
+                WORDS
+              </div>
+
+              {/* Line 2: 0/4 and Progress Bar */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  marginTop: '4px'
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '44px',
+                    fontWeight: '900',
+                    lineHeight: 1.1
+                  }}
+                >
+                  {flagCounter}/{totalSpawnWordCount}
+                </span>
+                {/* Mini progress bar */}
                 <div
                   style={{
-                    width: '100%',
-                    height: '10px',
-                    background: 'rgba(0, 0, 0, 0.25)',
-                    borderRadius: '8px',
+                    width: '96px',
+                    height: '18px',
+                    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+                    borderRadius: '9px',
                     overflow: 'hidden',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                    border: '2px solid rgba(255, 255, 255, 0.35)'
                   }}
                 >
                   <div
                     style={{
-                      width: `${Math.min(100, ((xp % 300) / 300) * 100)}%`,
+                      width: `${totalSpawnWordCount > 0 ? Math.min(100, Math.round((flagCounter / totalSpawnWordCount) * 100)) : 0}%`,
                       height: '100%',
-                      background: 'linear-gradient(90deg, #facc15 0%, #fbbf24 100%)',
-                      borderRadius: '8px',
-                      transition: 'width 0.35s ease'
+                      background: 'linear-gradient(90deg, #34d399, #10b981)',
+                      borderRadius: '9px',
+                      transition: 'width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
                     }}
                   />
                 </div>
               </div>
-
-              <div
-                style={{
-                  width: '130px',
-                  boxSizing: 'border-box',
-                  background: 'rgba(255, 255, 255, 0.96)',
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                  border: '3px solid rgba(255, 255, 255, 0.9)'
-                }}
-              >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  SCORE
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7', fontVariantNumeric: 'tabular-nums' }}>
-                  {score}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  width: '130px',
-                  boxSizing: 'border-box',
-                  background: 'rgba(255, 255, 255, 0.96)',
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                  border: '3px solid rgba(255, 255, 255, 0.9)'
-                }}
-              >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  TIME
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
-                  {formatTime(timer)}
-                </div>
-              </div>
             </div>
-          </div>
 
-          {/* Round Transition Flash Announcement Banner (Perfect Center Overlay) */}
-          {roundTransitionBanner && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(15, 23, 42, 0.45)',
-                backdropFilter: 'blur(4px)',
-                zIndex: 95,
-                pointerEvents: 'none'
-              }}
-            >
+            {/* Top-Right HUD Stats: Points on top, Hearts row below */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '14px', zIndex: 125 }}>
+              {/* Points Badge (Top row, enlarged text) */}
               <div
                 style={{
-                  background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                   color: '#ffffff',
-                  padding: '24px 64px',
-                  borderRadius: '50px',
-                  fontSize: '44px',
+                  padding: '14px 36px',
+                  borderRadius: '44px',
+                  fontSize: '40px',
                   fontWeight: '900',
-                  border: '6px solid #bbf7d0',
-                  boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5), 0 0 50px rgba(34, 197, 94, 0.6)',
                   letterSpacing: '1px',
+                  boxShadow: '0 12px 32px rgba(245, 158, 11, 0.4)',
+                  border: '5px solid #fde68a',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '20px',
-                  animation: 'popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                  gap: '12px',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <span>✨</span>
-                <span>{roundTransitionBanner}</span>
-                <span>✨</span>
+                <span style={{ fontSize: '36px', opacity: 0.95 }}>POINTS:</span>
+                <span style={{ fontSize: '42px' }}>{score}</span>
               </div>
-            </div>
-          )}
 
-          {/* Main Playing Board - 6 Tiles Solvable Unit */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '140px',
-              bottom: '70px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '1800px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              zIndex: 10
-            }}
-          >
-            <div
-              style={{
-                position: 'relative',
-                width: `${boardWidth}px`,
-                height: `${boardHeight}px`,
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {tiles.map((tile) => (
-                <Tile
-                  key={tile.id}
-                  tile={{ ...tile, minX, minY }}
-                  geometry={tileGeometry}
-                  isFree={freeTileIds.has(tile.id)}
-                  isSelected={selectedTileId === tile.id}
-                  isHinted={hintedPairIds.includes(tile.id)}
-                  isMismatch={mismatchedIds.includes(tile.id)}
-                  isMatched={matchedIds.includes(tile.id)}
-                  isJustUnlocked={justUnlockedIds.includes(tile.id)}
-                  onClick={handleTileClick}
-                />
-              ))}
+              {/* Hearts Badge (Row below Points, enlarged hearts) */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(15, 23, 42, 0.85) 100%)',
+                  color: '#f8fafc',
+                  padding: '14px 30px',
+                  borderRadius: '44px',
+                  boxShadow: '0 12px 30px rgba(239, 68, 68, 0.3)',
+                  border: '5px solid rgba(248, 113, 113, 0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  marginTop: '35px',
+                  animation: heartShake ? 'heartShakeAnim 0.4s ease-in-out' : 'none',
+                  whiteSpace: 'nowrap'
+                }}
+                title={`Lives remaining: ${hearts} of ${GAME_CONFIG.MAX_HEARTS || 5}`}
+              >
+                <style>{`
+                  @keyframes heartShakeAnim {
+                    0%, 100% { transform: translateX(0); }
+                    20%, 60% { transform: translateX(-6px) scale(1.05); }
+                    40%, 80% { transform: translateX(6px) scale(1.05); }
+                  }
+                `}</style>
+                {Array.from({ length: GAME_CONFIG.MAX_HEARTS || 5 }).map((_, idx) => {
+                  const isAlive = idx < hearts;
+                  return (
+                    <span
+                      key={idx}
+                      style={{
+                        fontSize: '44px',
+                        display: 'inline-block',
+                        transform: isAlive ? 'scale(1)' : 'scale(0.85)',
+                        filter: isAlive
+                          ? 'drop-shadow(0 2px 6px rgba(239, 68, 68, 0.6))'
+                          : 'grayscale(100%) opacity(0.3)',
+                        transition: 'all 0.25s ease'
+                      }}
+                    >
+                      {isAlive ? '❤️' : '🤍'}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Gentle Recovery Modal if blocked */}
-          {isDeadEnd && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '130px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'linear-gradient(135deg, #ffffff 0%, #fef3c7 100%)',
-                border: '5px solid #f59e0b',
-                borderRadius: '28px',
-                padding: '22px 44px',
-                boxShadow: '0 18px 50px rgba(0,0,0,0.45)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '28px',
-                zIndex: 90,
-                animation: 'popIn 0.3s ease'
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '24px', fontWeight: '900', color: '#b45309' }}>
-                  ⚠️ No Open Moves Remaining!
-                </div>
-                <div style={{ fontSize: '20px', color: '#78350f', fontWeight: '700', marginTop: '3px' }}>
-                  Would you like to undo your last move or re-align the remaining tiles?
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '18px' }}>
-                <button
-                  onClick={handleUndo}
-                  disabled={moveHistory.length === 0}
-                  style={{
-                    background: moveHistory.length > 0 ? '#3b82f6' : '#94a3b8',
-                    color: '#ffffff',
-                    padding: '16px 34px',
-                    borderRadius: '20px',
-                    fontWeight: '900',
-                    fontSize: '26px',
-                    letterSpacing: '0.6px',
-                    boxShadow: '0 4px 16px rgba(59, 130, 246, 0.4)',
-                    cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  UNDO MOVE
-                </button>
-                <button
-                  onClick={handleSmartReorder}
-                  style={{
-                    background: '#10b981',
-                    color: '#ffffff',
-                    padding: '16px 34px',
-                    borderRadius: '20px',
-                    fontWeight: '900',
-                    fontSize: '26px',
-                    letterSpacing: '0.6px',
-                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.4)',
-                    cursor: 'pointer'
-                  }}
-                >
-                  SMART RE-ORDER
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Action Toolbar */}
+          {/* Center Area: Crossword Grid */}
           <div
             style={{
-              position: 'absolute',
-              top: '140px',
-              right: '28px',
+              flex: 1,
               display: 'flex',
               flexDirection: 'column',
-              gap: '18px',
-              zIndex: 85
+              justifyContent: 'center',
+              alignItems: 'center',
+              margin: '6px 0',
+              position: 'relative'
             }}
           >
-            <button
-              onClick={handleHint}
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                color: '#ffffff',
-                padding: '20px 42px',
-                borderRadius: '28px',
-                border: '5px solid #fde68a',
-                boxShadow: '0 10px 28px rgba(217, 119, 6, 0.48)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                fontSize: '32px',
-                fontWeight: '900',
-                letterSpacing: '0.8px',
-                cursor: 'pointer',
-                textAlign: 'center'
-              }}
-            >
-              <span>HINT ({hintsRemaining})</span>
-            </button>
+            {/* Temporary Notification Toast */}
+            {messageToast && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  background:
+                    messageToast.type === 'success'
+                      ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                      : messageToast.type === 'error'
+                        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                        : 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: '#ffffff',
+                  padding: '12px 32px',
+                  borderRadius: '30px',
+                  fontSize: '24px',
+                  fontWeight: '900',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+                  zIndex: 50,
+                  animation: 'popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                }}
+              >
+                {messageToast.text}
+              </div>
+            )}
 
-            <button
-              onClick={handleUndo}
-              disabled={moveHistory.length === 0}
-              style={{
-                background: moveHistory.length > 0 ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : '#94a3b8',
-                color: '#ffffff',
-                padding: '20px 42px',
-                borderRadius: '28px',
-                border: `5px solid ${moveHistory.length > 0 ? '#93c5fd' : '#cbd5e1'}`,
-                boxShadow: '0 10px 28px rgba(59, 130, 246, 0.4)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                fontSize: '32px',
-                fontWeight: '900',
-                letterSpacing: '0.8px',
-                cursor: moveHistory.length > 0 ? 'pointer' : 'not-allowed',
-                textAlign: 'center'
-              }}
-            >
-              <span>UNDO</span>
-            </button>
+            {puzzle ? (
+              <CrosswordGrid
+                gridData={puzzle}
+                solvedWords={solvedWords}
+                revealedLetters={revealedLetters}
+                activeWord={activeWord}
+                onSelectWord={(w) => setActiveWord(w)}
+              />
+            ) : (
+              <div style={{ fontSize: '28px', color: '#ffffff', fontWeight: '800' }}>
+                Loading Crossword Puzzle...
+              </div>
+            )}
           </div>
 
-          {/* Mascot Pema */}
-          <Mascot
-            tip={mascotTip}
-            mood={mascotMood}
-            onClick={() => {
-              if (mascotTip) {
-                audio.speakWord(mascotTip);
-              }
-            }}
+          {/* Word Completion Tracking List Pills (2 columns x 2 rows) */}
+          {puzzle && puzzle.words && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '12px 18px',
+                width: '920px',
+                maxWidth: '92%',
+                margin: '0 auto 14px auto',
+                zIndex: 20
+              }}
+            >
+              {puzzle.words.map((w, idx) => {
+                const isSolved = solvedWords.includes(w.clean);
+                const isActive = activeWord && activeWord.uid === w.uid;
+                return (
+                  <button
+                    key={w.uid || `${w.clean}-${idx}`}
+                    onClick={() => {
+                      audio.playSelect();
+                      setActiveWord(w);
+                    }}
+                    style={{
+                      background: isSolved
+                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        : isActive
+                          ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                          : 'rgba(15, 23, 42, 0.85)',
+                      color: '#ffffff',
+                      border: isSolved
+                        ? '3px solid #6ee7b7'
+                        : isActive
+                          ? '3px solid #fde68a'
+                          : '3px solid rgba(255, 255, 255, 0.25)',
+                      borderRadius: '28px',
+                      padding: '12px 20px',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      fontSize: '32px',
+                      fontWeight: '900',
+                      letterSpacing: '0.8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '10px',
+                      boxShadow: isActive || isSolved ? '0 8px 20px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.25)',
+                      transform: isActive ? 'scale(1.03)' : 'scale(1)',
+                      transition: 'all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                    }}
+                  >
+                    <span style={{ fontSize: isSolved ? '26px' : '32px' }}>{isSolved ? '✅' : `${w.number}.`}</span>
+                    <span>{isSolved ? w.clean : `${w.direction.toUpperCase()} (${w.length})`}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Active Word Clue Card */}
+          <ClueCard
+            activeWord={activeWord}
+            onHintClick={handleUseHint}
+            hintsRemaining={hintsRemaining}
           />
 
-          {/* Bottom Progress Bar */}
+          {/* Bottom Area: Letter Keyboard (Row / Column Grid) */}
           <div
             style={{
-              position: 'absolute',
-              bottom: '18px',
-              right: '28px',
-              width: '390px',
-              background: 'rgba(255, 255, 255, 0.97)',
-              borderRadius: '24px',
-              padding: '16px 26px',
-              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.28)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '28px',
               zIndex: 20
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                fontSize: '20px',
-                fontWeight: '900',
-                color: '#1e293b',
-                marginBottom: '8px'
-              }}
-            >
-              <span>Round {round} Progress:</span>
-              <span style={{ color: '#0284c7' }}>
-                {matchedIds.length / 2} / {tiles.length / 2} Pairs
-              </span>
-            </div>
-            <div
-              style={{
-                width: '100%',
-                height: '18px',
-                background: '#e2e8f0',
-                borderRadius: '12px',
-                overflow: 'hidden'
-              }}
-            >
-              <div
-                style={{
-                  width: `${(matchedIds.length / (tiles.length || 1)) * 100}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, #3b82f6, #10b981)',
-                  borderRadius: '12px',
-                  transition: 'width 0.4s ease'
-                }}
-              />
-            </div>
+            <LetterKeyboard
+              letters={keyboardLetters}
+              onLetterClick={handleLetterClick}
+              onShuffle={handleShuffleLetters}
+              activeWord={activeWord}
+              disabled={!isGameActive || showPause || isVictory}
+            />
           </div>
 
-          {/* Victory Modal after Round 3 */}
-          {isVictory && (
-            <VictoryModal
-              score={victoryStats.finalScore}
-              xp={victoryStats.finalXp || xp}
-              timeBonus={victoryStats.timeBonus}
-              timeTaken={timer}
-              levelTitle="Himalayan Word Mahjong"
-              stars={victoryStats.stars}
-              onReplay={() => startRound(1, true)}
-              onHome={() => setScene('MENU')}
-            />
-          )}
-        </>
+          {/* Mascot in bottom left corner with speech tip */}
+          {/* <Mascot tip={mascotTip} mood={mascotMood} /> */}
+        </div>
       )}
 
-      {/* Flutter Bridge Developer Debug Inspector */}
+      {/* How to Play Modal */}
+      {showHowToPlay && (
+        <HowToPlayModal
+          onClose={() => {
+            audio.playSelect();
+            setShowHowToPlay(false);
+          }}
+        />
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsModal
+          onClose={() => {
+            audio.playSelect();
+            setShowSettings(false);
+          }}
+          sfxVolume={sfxVolume}
+          setSfxVolume={(v) => {
+            setSfxVolume(v);
+            audio.setSfxVolume(v);
+          }}
+          sfxMuted={sfxMuted}
+          setSfxMuted={(m) => {
+            setSfxMuted(m);
+            audio.toggleSfxMute();
+          }}
+          musicVolume={musicVolume}
+          setMusicVolume={(v) => {
+            setMusicVolume(v);
+            audio.setMusicVolume(v);
+          }}
+          musicMuted={musicMuted}
+          setMusicMuted={(m) => {
+            setMusicMuted(m);
+            audio.toggleMusicMute();
+          }}
+        />
+      )}
+
+      {/* Pause Modal */}
+      {showPause && (
+        <PauseModal
+          onResume={() => {
+            audio.playSelect();
+            setShowPause(false);
+            setIsGameActive(true);
+          }}
+          onRestart={() => {
+            audio.playSelect();
+            startNewGame();
+          }}
+          onQuit={() => {
+            audio.playSelect();
+            setShowPause(false);
+            setIsGameActive(false);
+            setScene('MENU');
+            audio.stopBGM();
+          }}
+        />
+      )}
+
+      {/* Round Completed Modal Pop-up */}
+      {showRoundComplete && (
+        <RoundCompleteModal
+          round={roundCompleteData.round}
+          totalRounds={TOTAL_ROUNDS}
+          wordsCount={roundCompleteData.wordsCount}
+          words={roundCompleteData.words}
+          score={score}
+          onNextRound={handleProceedToNextRound}
+        />
+      )}
+
+      {/* Game Over Modal */}
+      {showGameOver && (
+        <GameOverModal
+          round={round}
+          totalRounds={TOTAL_ROUNDS}
+          flagCounter={flagCounter}
+          totalSpawnWordCount={totalSpawnWordCount}
+          score={score}
+          onRetry={() => {
+            setShowGameOver(false);
+            setHearts(GAME_CONFIG.MAX_HEARTS || 5);
+            heartsRef.current = GAME_CONFIG.MAX_HEARTS || 5;
+            setIsGameActive(true);
+            audio.startBGM();
+            startRound(roundRef.current);
+          }}
+          onHome={() => {
+            setShowGameOver(false);
+            setIsGameActive(false);
+            setScene('MENU');
+            audio.stopBGM();
+          }}
+        />
+      )}
+
+      {/* Victory Modal */}
+      {isVictory && (
+        <VictoryModal
+          score={victoryStats.finalScore}
+          xp={victoryStats.finalScore}
+          timeBonus={victoryStats.timeBonus}
+          baseScore={score}
+          stars={victoryStats.stars}
+          heartsRemaining={hearts}
+          maxHearts={GAME_CONFIG.MAX_HEARTS || 5}
+          levelTitle="Crossword Quest Master"
+          onReplay={() => {
+            startNewGame();
+          }}
+          onHome={() => {
+            setIsVictory(false);
+            setScene('MENU');
+          }}
+        />
+      )}
+
+      {/* Flutter Bridge Debug Overlay */}
       {showBridgeDebug && (
-        <BridgeDebugOverlay onClose={() => setShowBridgeDebug(false)} />
+        <BridgeDebugOverlay
+          onClose={() => setShowBridgeDebug(false)}
+          onSimulateCommand={(cmd, data) => {
+            console.log('[Debug] Simulated command:', cmd, data);
+          }}
+        />
       )}
     </AspectRatioContainer>
   );
