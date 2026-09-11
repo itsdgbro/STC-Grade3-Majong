@@ -913,15 +913,13 @@ export default function App() {
       {/* Cartoon Himalayan Background */}
       <HimalayanBackground themeGradient={level.bgGradient} />
 
-      {/* In-Game Subtle Background Blur & Vignette Focus Layer */}
+      {/* In-Game Subtle Background Vignette Focus Layer */}
       {scene === 'GAME' && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            backdropFilter: 'blur(3.5px)',
-            WebkitBackdropFilter: 'blur(3.5px)',
-            background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.32) 100%)',
+            background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.05) 0%, rgba(15, 23, 42, 0.28) 100%)',
             zIndex: 2,
             pointerEvents: 'none',
             transition: 'all 0.5s ease'
@@ -1036,9 +1034,7 @@ export default function App() {
                 transform: 'translateX(-50%)',
                 height: '84px',
                 boxSizing: 'border-box',
-                background: 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
+                background: 'rgba(255, 255, 255, 0.98)',
                 padding: '10px 48px',
                 borderRadius: '50px',
                 border: '4px solid #facc15',
@@ -1064,9 +1060,7 @@ export default function App() {
                   minWidth: '260px',
                   height: '74px',
                   boxSizing: 'border-box',
-                  background: 'rgba(255, 255, 255, 0.94)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
+                  background: 'rgba(255, 255, 255, 0.97)',
                   padding: '8px 28px',
                   borderRadius: '24px',
                   display: 'flex',
@@ -1091,9 +1085,7 @@ export default function App() {
                 style={{
                   height: '74px',
                   boxSizing: 'border-box',
-                  background: 'rgba(255, 255, 255, 0.94)',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
+                  background: 'rgba(255, 255, 255, 0.97)',
                   padding: '8px 22px',
                   borderRadius: '24px',
                   boxShadow: heartLostAnim ? '0 4px 18px rgba(239, 68, 68, 0.45)' : '0 4px 14px rgba(0,0,0,0.2)',
@@ -1201,9 +1193,7 @@ export default function App() {
                   position: 'absolute',
                   inset: '-36px -48px',
                   borderRadius: '44px',
-                  background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 65%, transparent 100%)',
-                  backdropFilter: 'blur(5px)',
-                  WebkitBackdropFilter: 'blur(5px)',
+                  background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.08) 65%, transparent 100%)',
                   boxShadow: '0 24px 60px rgba(0, 0, 0, 0.2)',
                   pointerEvents: 'none',
                   zIndex: 0
@@ -1370,9 +1360,7 @@ export default function App() {
               bottom: '20px',
               right: '28px',
               width: '490px',
-              background: 'rgba(255, 255, 255, 0.94)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
+              background: 'rgba(255, 255, 255, 0.97)',
               borderRadius: '28px',
               padding: '20px 32px',
               boxShadow: '0 10px 32px rgba(0, 0, 0, 0.28)',
