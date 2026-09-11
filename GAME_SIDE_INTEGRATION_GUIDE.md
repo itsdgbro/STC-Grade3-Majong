@@ -47,6 +47,24 @@ flowchart TD
     Validate -- No / Error --> ErrorScreen[Display Fullscreen Error: 'Failed to fetch json file.']
 ```
 
+### 🏷️ Dynamic Metadata Extraction (`gameId` & `gameTitle`)
+
+When `loadGameLevels()` finishes fetching the dataset, it automatically configures `flutterBridge`:
+- **`gameId`**: Extracted from the dataset filename without `.json` extension (e.g. `grade4_math_mahjong`).
+- **`gameTitle`**: Extracted from the `headerBadge` (or `header` / `title`) field inside the JSON file (e.g. `SAVE THE CHILDREN • GRADE 4 MATHEMATICS`).
+
+| Dataset File Name | Dynamic `gameId` | Dynamic `gameTitle` |
+| :--- | :--- | :--- |
+| `grade3_english_mahjong.json` | `grade3_english_mahjong` | `SAVE THE CHILDREN • GRADE 3 ENGLISH` |
+| `grade3_math_mahjong.json` | `grade3_math_mahjong` | `SAVE THE CHILDREN • GRADE 3 MATHEMATICS` |
+| `grade3_nepali_mahjong.json` | `grade3_nepali_mahjong` | `SAVE THE CHILDREN • GRADE 3 NEPALI` |
+| `grade4_english_mahjong.json` | `grade4_english_mahjong` | `SAVE THE CHILDREN • GRADE 4 ENGLISH` |
+| `grade4_math_mahjong.json` | `grade4_math_mahjong` | `SAVE THE CHILDREN • GRADE 4 MATHEMATICS` |
+| `grade4_nepali_mahjong.json` | `grade4_nepali_mahjong` | `SAVE THE CHILDREN • GRADE 4 NEPALI` |
+| `grade5_english_mahjong.json` | `grade5_english_mahjong` | `SAVE THE CHILDREN • GRADE 5 ENGLISH` |
+| `grade5_math_mahjong.json` | `grade5_math_mahjong` | `SAVE THE CHILDREN • GRADE 5 MATHEMATICS` |
+| `grade5_nepali_mahjong.json` | `grade5_nepali_mahjong` | `SAVE THE CHILDREN • GRADE 5 NEPALI` |
+
 ### Complete Implementation (`src/utils/dataLoader.js`)
 
 Copy this module directly into any game project:

@@ -41,11 +41,32 @@ controller.runJavaScript('window.__GAME_DATA__ = $jsonContent;');
 
 ---
 
-## 2. Outgoing Events (Game ➔ Flutter)
+## 🏷️ 2. Dynamic Metadata Resolution (`gameId` & `gameTitle`)
 
-The game dispatches JSON strings over the `FlutterBridge` channel upon level completion. 
+The game automatically extracts `gameId` and `gameTitle` from the loaded JSON dataset—no hardcoding required.
 
-> 💡 **Dynamic Metadata:** The game automatically sets `gameId` from the loaded JSON filename (e.g. `grade4_math_mahjong`) and `gameTitle` from the header field in the JSON file (e.g. `SAVE THE CHILDREN • GRADE 4 MATHEMATICS`).
+- **`gameId`**: Derived from the loaded JSON filename without the `.json` extension.
+- **`gameTitle`**: Extracted from the `headerBadge` (or `header` / `title`) field inside the JSON dataset.
+
+### Available Datasets & Resolved Identity
+
+| Loaded JSON File | Dynamic `gameId` | Dynamic `gameTitle` |
+| :--- | :--- | :--- |
+| `grade3_english_mahjong.json` | `grade3_english_mahjong` | `SAVE THE CHILDREN • GRADE 3 ENGLISH` |
+| `grade3_math_mahjong.json` | `grade3_math_mahjong` | `SAVE THE CHILDREN • GRADE 3 MATHEMATICS` |
+| `grade3_nepali_mahjong.json` | `grade3_nepali_mahjong` | `SAVE THE CHILDREN • GRADE 3 NEPALI` |
+| `grade4_english_mahjong.json` | `grade4_english_mahjong` | `SAVE THE CHILDREN • GRADE 4 ENGLISH` |
+| `grade4_math_mahjong.json` | `grade4_math_mahjong` | `SAVE THE CHILDREN • GRADE 4 MATHEMATICS` |
+| `grade4_nepali_mahjong.json` | `grade4_nepali_mahjong` | `SAVE THE CHILDREN • GRADE 4 NEPALI` |
+| `grade5_english_mahjong.json` | `grade5_english_mahjong` | `SAVE THE CHILDREN • GRADE 5 ENGLISH` |
+| `grade5_math_mahjong.json` | `grade5_math_mahjong` | `SAVE THE CHILDREN • GRADE 5 MATHEMATICS` |
+| `grade5_nepali_mahjong.json` | `grade5_nepali_mahjong` | `SAVE THE CHILDREN • GRADE 5 NEPALI` |
+
+---
+
+## 📡 3. Outgoing Events (Game ➔ Flutter)
+
+The game dispatches JSON strings over the `FlutterBridge` channel upon level completion.
 
 ### Event Format Schema
 ```json
