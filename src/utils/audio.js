@@ -353,38 +353,8 @@ class AudioManager {
   }
 
   speakWord(word) {
-    if (this.sfxMuted || this.speechMuted || this.getEffectiveSfxVolume() <= 0 || !window.speechSynthesis) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.88;
-      utterance.pitch = 1.08;
-      utterance.volume = this.getEffectiveSfxVolume();
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const preferredVoice = voices.find(
-          (v) =>
-            v.lang.startsWith('en') &&
-            (v.name.includes('Natural') ||
-             v.name.includes('Google US English') ||
-             v.name.includes('Samantha') ||
-             v.name.includes('Jenny') ||
-             v.name.includes('Aria') ||
-             v.name.includes('Zira') ||
-             v.name.includes('Karen'))
-        ) || voices.find((v) => v.lang.startsWith('en'));
-
-        if (preferredVoice) {
-          utterance.voice = preferredVoice;
-        }
-      }
-
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.warn('Speech synthesis error:', e);
-    }
+    // TTS disabled per user preference
+    return;
   }
 }
 

@@ -3,14 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Grade 3 English Mahjong Adventures</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Himalayan English Bingo - Grade 3</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Comic+Neue:wght@400;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="game-container"></div>
+
+    <!-- Mobile Portrait Orientation Prompt Overlay -->
+    <div id="orientation-overlay" class="orientation-overlay">
+      <div class="orientation-modal">
+        <div class="phone-animation-container">
+          <div class="phone-device">
+            <div class="phone-screen">
+              <div class="phone-dot"></div>
+            </div>
+          </div>
+          <div class="rotate-arrow-badge">🔄</div>
+        </div>
+        <h2 class="orientation-title">PLEASE ROTATE YOUR DEVICE</h2>
+        <p class="orientation-subtitle">This game is best played in <strong>Landscape Mode</strong></p>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

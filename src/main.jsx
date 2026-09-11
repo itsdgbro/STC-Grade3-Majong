@@ -1,10 +1,18 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
+import './index.css';
+import { createGame } from './game/main.js';
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+window.addEventListener('DOMContentLoaded', () => {
+  createGame();
+
+  // Attempt orientation lock for supporting platforms (Android Chrome)
+  const tryLockLandscape = () => {
+    try {
+      if (screen.orientation && 'lock' in screen.orientation) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
+    } catch (_) {}
+  };
+
+  window.addEventListener('pointerdown', tryLockLandscape, { once: true });
+  window.addEventListener('touchstart', tryLockLandscape, { once: true });
+});
