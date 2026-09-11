@@ -81,9 +81,29 @@ export const Tile = ({
     dropShadowStyle = '0 0 40px rgba(34, 197, 94, 0.9), 0 20px 32px rgba(0,0,0,0.4)';
   }
 
-  // Dynamic font sizing based on word length to ensure massive, bold, highly legible words for kids
+  // Dynamic font sizing based on word length to ensure massive words for short terms, scaling down for long math/Nepali expressions
   const wordLen = tile.word ? tile.word.length : 0;
-  const wordFontSize = wordLen <= 4 ? '44px' : wordLen <= 7 ? '38px' : wordLen <= 10 ? '32px' : '26px';
+  const calculatedFontSize = !tile.icon
+    ? (wordLen <= 5
+        ? '52px'
+        : wordLen <= 8
+        ? '46px'
+        : wordLen <= 12
+        ? '38px'
+        : wordLen <= 18
+        ? '32px'
+        : wordLen <= 24
+        ? '27px'
+        : '24px')
+    : (wordLen <= 4
+        ? '44px'
+        : wordLen <= 7
+        ? '38px'
+        : wordLen <= 10
+        ? '32px'
+        : wordLen <= 15
+        ? '26px'
+        : '22px');
 
   return (
     <div
@@ -176,7 +196,7 @@ export const Tile = ({
 
         {/* Top visual balancing spacer when there is no icon to keep word centered with relation ribbon */}
         {!tile.icon && tile.relation && (
-          <div style={{ height: '36px', pointerEvents: 'none', visibility: 'hidden' }} />
+          <div style={{ height: '12px', pointerEvents: 'none', visibility: 'hidden' }} />
         )}
 
         {/* Central Illustration: Image or Emoji (only rendered if icon exists) */}
@@ -280,27 +300,30 @@ export const Tile = ({
               alignItems: 'center',
               justifyContent: 'center',
               width: '100%',
-              padding: '0 10px',
+              padding: '2px 6px',
               boxSizing: 'border-box',
-              margin: !tile.icon ? '0' : '0 0 4px 0'
+              margin: !tile.icon ? '0' : '0 0 2px 0'
             }}
           >
             <div
               style={{
-                fontSize: !tile.icon
-                  ? (wordLen <= 5 ? '48px' : wordLen <= 8 ? '42px' : wordLen <= 11 ? '36px' : '30px')
-                  : wordFontSize,
-                fontWeight: '900',
+                fontSize: calculatedFontSize,
+                fontWeight: '800',
                 color: textColor,
                 textAlign: 'center',
-                textTransform: 'capitalize',
                 width: '100%',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                lineHeight: 1.15,
-                letterSpacing: '-0.4px',
-                fontFamily: "'Fredoka', sans-serif"
+                lineHeight: 1.28,
+                paddingTop: '3px',
+                paddingBottom: '2px',
+                letterSpacing: '-0.2px',
+                fontFamily: "'Mukta', 'Fredoka', sans-serif",
+                wordBreak: wordLen > 14 ? 'break-word' : 'normal',
+                overflowWrap: 'break-word',
+                maxHeight: !tile.icon ? '134px' : '72px',
+                display: '-webkit-box',
+                WebkitLineClamp: !tile.icon ? 3 : 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden'
               }}
             >
               {tile.word}
@@ -312,21 +335,22 @@ export const Tile = ({
         {tile.relation ? (
           <div
             style={{
-              fontSize: '22px',
-              fontWeight: '900',
-              padding: '7px 22px',
-              borderRadius: '14px',
+              fontSize: tile.relation.length > 22 ? '17px' : tile.relation.length > 15 ? '19px' : '21px',
+              fontWeight: '700',
+              padding: '4px 16px',
+              borderRadius: '12px',
               background: isFree 
                 ? (isSelected ? 'rgba(113, 63, 18, 0.25)' : 'rgba(2, 132, 199, 0.22)') 
                 : 'rgba(0, 0, 0, 0.35)',
               color: isFree ? (isSelected ? '#713f12' : '#0369a1') : '#d6d3d1',
-              letterSpacing: '0.8px',
-              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
               whiteSpace: 'nowrap',
-              maxWidth: '92%',
+              maxWidth: '94%',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              textAlign: 'center'
+              textAlign: 'center',
+              lineHeight: 1.3,
+              fontFamily: "'Mukta', 'Fredoka', sans-serif"
             }}
           >
             {tile.relation}

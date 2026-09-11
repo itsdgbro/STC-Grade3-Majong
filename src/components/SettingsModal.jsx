@@ -134,8 +134,8 @@ export const SettingsModal = ({
                 }}
                 style={{
                   width: '100%',
-                  height: '20px',
-                  borderRadius: '12px',
+                  height: '25px',
+                  borderRadius: '14px',
                   accentColor: '#22c55e',
                   cursor: 'pointer'
                 }}
@@ -218,8 +218,8 @@ export const SettingsModal = ({
                 }}
                 style={{
                   width: '100%',
-                  height: '20px',
-                  borderRadius: '12px',
+                  height: '25px',
+                  borderRadius: '14px',
                   accentColor: '#f59e0b',
                   cursor: 'pointer'
                 }}

@@ -114,7 +114,7 @@ export const Mascot = ({ tip, mood = 'happy', onClick }) => {
         <div style={{ fontSize: '24px', fontWeight: '900', color: '#b45309', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.9px', textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>
           🐾 Pema says:
         </div>
-        <div style={{ fontSize: '30px', fontWeight: '900', color: '#0f172a', lineHeight: '1.38', fontFamily: "'Fredoka', sans-serif" }}>
+        <div style={{ fontSize: '30px', fontWeight: '800', color: '#0f172a', lineHeight: '1.42', fontFamily: "'Fredoka', 'Mukta', sans-serif" }}>
           {tip || 'Match the word pairs to clear the board!'}
         </div>
         {/* Tail pointing to avatar */}

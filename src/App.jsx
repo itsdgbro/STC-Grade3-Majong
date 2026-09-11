@@ -764,16 +764,16 @@ export default function App() {
     return Math.max(maxLen, 6); // default baseline 6 chars
   }, [tiles]);
 
-  // Wide landscape tile geometry with increased width and dynamic expansion for long words
+  // Wide landscape tile geometry with controlled expansion for long words
   const tileGeometry = useMemo(() => {
     const configSize = GAME_CONFIG.TILE_SIZE || {};
     const baseW = configSize.BASE_WIDTH || 280;
     const baseH = configSize.BASE_HEIGHT || 220;
-    const maxW = configSize.MAX_WIDTH || 400;
+    const maxW = configSize.MAX_WIDTH || 340;
     const unitXRatio = configSize.UNIT_X_RATIO || 0.48;
     const unitYVal = configSize.UNIT_Y || 120;
 
-    const extraWidth = Math.max(0, maxWordLength - 6) * 16;
+    const extraWidth = Math.min(60, Math.max(0, maxWordLength - 6) * 6);
     const tileWidth = Math.min(maxW, baseW + extraWidth);
     const tileHeight = baseH;
     const unitX = Math.round(tileWidth * unitXRatio);
@@ -791,6 +791,16 @@ export default function App() {
 
   const boardWidth = (maxX - minX) * tileGeometry.unitX + tileGeometry.tileWidth + maxZ * 8;
   const boardHeight = (maxY - minY) * tileGeometry.unitY + tileGeometry.tileHeight + maxZ * 16;
+
+  // Dynamic board auto-scaler: guarantees the tiles NEVER exceed the safe playing screen bounds
+  const boardScale = useMemo(() => {
+    const maxSafeWidth = 1460; // optimal safe horizontal span with clearance for toolbar
+    const maxSafeHeight = 685; // optimal safe vertical span with clearance for header and HUD
+    const scaleX = maxSafeWidth / (boardWidth || 1);
+    const scaleY = maxSafeHeight / (boardHeight || 1);
+    // Dynamically shrink if needed, but never scale above 1.0
+    return Math.min(1.0, scaleX, scaleY);
+  }, [boardWidth, boardHeight]);
 
   const isDeadEnd = activeTiles.length > 0 && availableFreePairs.length === 0 && !isVictory;
 
@@ -1175,7 +1185,9 @@ export default function App() {
                 position: 'relative',
                 width: `${boardWidth}px`,
                 height: `${boardHeight}px`,
-                transition: 'all 0.3s ease'
+                transform: `scale(${boardScale})`,
+                transformOrigin: 'center center',
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
               }}
             >
               {/* Subtle ambient depth aura under the tiles bringing them into sharp focus */}

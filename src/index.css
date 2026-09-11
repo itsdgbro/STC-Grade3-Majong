@@ -1,3 +1,60 @@
+/* Mukta Devanagari (Nepali) & Latin Font Family */
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Base styling for full-screen letterboxed 16:9 viewport */
 * {
   box-sizing: border-box;
@@ -16,7 +73,7 @@ html, body {
   padding: 0;
   background-color: #000000; /* Strict solid black bars for non-16:9 aspect ratios */
   overflow: hidden;
-  font-family: 'Fredoka', 'Outfit', sans-serif;
+  font-family: 'Fredoka', 'Mukta', 'Outfit', sans-serif;
   color: #1e293b;
   touch-action: manipulation;
   -webkit-font-smoothing: antialiased;
