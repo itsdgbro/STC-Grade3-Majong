@@ -1,147 +1,217 @@
-/* Base styling for full-screen letterboxed 16:9 viewport */
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Mukta';
+  src: url('/fonts/Mukta-ExtraLight.ttf') format('truetype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-user-drag: none;
   -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #000000; /* Strict solid black bars for non-16:9 aspect ratios */
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
-  font-family: 'Fredoka', 'Outfit', sans-serif;
-  color: #1e293b;
-  touch-action: manipulation;
-  -webkit-font-smoothing: antialiased;
+  background-color: #0284c7;
+  font-family: 'Mukta', 'Outfit', 'Fredoka', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-#root {
+#game-container {
   width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #000000;
-  overflow: hidden;
 }
 
-/* 1920x1080 Game Viewport Container */
-.game-viewport {
-  position: relative;
-  width: 1920px;
-  height: 1080px;
-  min-width: 1920px;
-  min-height: 1080px;
-  background: radial-gradient(circle at 50% 20%, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%);
-  overflow: hidden;
-  transform-origin: center center;
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-  will-change: transform;
+canvas {
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
 }
 
-/* Animations */
-@keyframes floatSlow {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(1deg); }
-}
-
-@keyframes cloudDrift1 {
-  0% { transform: translateX(-200px); }
-  100% { transform: translateX(2100px); }
-}
-
-@keyframes cloudDrift2 {
-  0% { transform: translateX(-350px); }
-  100% { transform: translateX(2100px); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.6), 0 8px 20px rgba(0,0,0,0.15); }
-  50% { box-shadow: 0 0 30px rgba(250, 204, 21, 0.95), 0 12px 28px rgba(250, 204, 21, 0.4); }
-}
-
-@keyframes wobbleError {
-  0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  20% { transform: translate(-8px, 0) rotate(-4deg); }
-  40% { transform: translate(8px, 0) rotate(4deg); }
-  60% { transform: translate(-6px, 0) rotate(-2deg); }
-  80% { transform: translate(6px, 0) rotate(2deg); }
-}
-
-@keyframes matchSuccess {
-  0% { transform: scale(1); opacity: 1; filter: brightness(1); }
-  50% { transform: scale(1.25) translateY(-20px); opacity: 0.9; filter: brightness(1.4); }
-  100% { transform: scale(0.1) translateY(-60px); opacity: 0; }
-}
-
-@keyframes popIn {
-  0% { transform: scale(0.6); opacity: 0; }
-  70% { transform: scale(1.08); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes popRoundBanner {
-  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
-  60% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
-
-@keyframes bounceSlow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
-/* Rotate Device Overlay for Portrait Mode */
-.rotate-device-overlay {
+/* ==========================================================================
+   Mobile / Tablet Portrait Orientation Prompt Overlay (project-rules)
+   ========================================================================== */
+.orientation-overlay {
   display: none;
   position: fixed;
-  inset: 0;
-  background: #0f172a;
-  z-index: 99999;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.98), rgba(2, 6, 23, 0.99));
+  z-index: 9999999;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  padding: 32px;
+  padding: 24px;
   box-sizing: border-box;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-@media screen and (orientation: portrait) {
-  .rotate-device-overlay {
-    display: flex !important;
+.orientation-modal {
+  background: rgba(30, 41, 59, 0.92);
+  border: 3px solid #38bdf8;
+  border-radius: 28px;
+  padding: 36px 28px;
+  max-width: 360px;
+  width: 88%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(56, 189, 248, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.phone-animation-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.phone-device {
+  width: 52px;
+  height: 88px;
+  background: #0f172a;
+  border: 3.5px solid #38bdf8;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+  animation: rotateDevice 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.phone-screen {
+  width: 38px;
+  height: 68px;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  border-radius: 6px;
+  position: relative;
+}
+
+.phone-dot {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #38bdf8;
+  border-radius: 50%;
+}
+
+.rotate-arrow-badge {
+  position: absolute;
+  font-size: 26px;
+  bottom: 2px;
+  right: 6px;
+  animation: spinArrow 2.2s linear infinite;
+}
+
+.orientation-title {
+  font-family: 'Fredoka', 'Nunito', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fde047;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  margin: 0 0 10px 0;
+  letter-spacing: 0.5px;
+}
+
+.orientation-subtitle {
+  font-family: 'Nunito', 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.orientation-subtitle strong {
+  color: #38bdf8;
+}
+
+@keyframes rotateDevice {
+  0%, 15% { transform: rotate(0deg); }
+  45%, 80% { transform: rotate(90deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes spinArrow {
+  0%, 15% { transform: rotate(0deg) scale(1); }
+  45%, 80% { transform: rotate(-180deg) scale(1.15); }
+  100% { transform: rotate(-360deg) scale(1); }
+}
+
+/* Display overlay whenever device is in Portrait AND mobile/tablet size */
+@media screen and (orientation: portrait) and (max-width: 1024px) {
+  .orientation-overlay {
+    display: flex;
   }
-}
-
-@keyframes rotatePhone {
-  0% { transform: rotate(0deg); }
-  50% { transform: rotate(-90deg); }
-  100% { transform: rotate(-90deg); }
-}
-
-.rotate-phone-icon {
-  font-size: 80px;
-  animation: rotatePhone 2s ease-in-out infinite alternate;
-  margin-bottom: 24px;
-}
-
-/* Button & UI utilities with touch improvements */
-button {
-  font-family: inherit;
-  border: none;
-  outline: none;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-button:active {
-  transform: scale(0.94);
 }
