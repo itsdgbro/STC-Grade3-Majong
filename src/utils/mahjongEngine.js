@@ -234,9 +234,11 @@ export function generateSolutionFirstPuzzle(layoutSlots, vocabularyPool, levelId
   while (true) {
     // 1. Pick unique vocabulary pairs from the pool
     const shuffledVocab = [...pool].sort(() => Math.random() - 0.5);
-    const chosenPairs = [];
-    for (let i = 0; i < numPairsNeeded; i++) {
-      chosenPairs.push(shuffledVocab[i % shuffledVocab.length]);
+    const chosenPairs = shuffledVocab.slice(0, numPairsNeeded);
+    if (chosenPairs.length < numPairsNeeded && shuffledVocab.length > 0) {
+      for (let i = chosenPairs.length; i < numPairsNeeded; i++) {
+        chosenPairs.push(shuffledVocab[i % shuffledVocab.length]);
+      }
     }
 
     // 2. Track remaining slots on the board

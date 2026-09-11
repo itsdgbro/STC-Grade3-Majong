@@ -17,12 +17,7 @@ export const SettingsModal = ({
   musicVolume,
   setMusicVolume,
   musicMuted,
-  setMusicMuted,
-  speechVolume,
-  setSpeechVolume,
-  speechMuted,
-  setSpeechMuted,
-  onToggleBridgeDebug
+  setMusicMuted
 }) => {
   return (
     <div
@@ -41,11 +36,13 @@ export const SettingsModal = ({
       <div
         style={{
           background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-          borderRadius: '40px',
-          border: '8px solid #facc15',
+          borderRadius: '48px',
+          border: '10px solid #facc15',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.55), 0 0 50px rgba(250, 204, 21, 0.4)',
-          padding: '46px 56px',
-          width: '680px',
+          padding: '56px 84px',
+          width: '850px',
+          maxWidth: '1000px',
+          boxSizing: 'border-box',
           textAlign: 'center',
           position: 'relative'
         }}
@@ -54,32 +51,29 @@ export const SettingsModal = ({
         {/* Title */}
         <div
           style={{
-            fontSize: '44px',
+            fontSize: '56px',
             fontWeight: '900',
             color: '#1e293b',
-            marginBottom: '6px',
+            marginBottom: '40px',
             fontFamily: "'Fredoka', sans-serif"
           }}
         >
           ⚙️ Audio Settings
         </div>
-        <div style={{ fontSize: '22px', fontWeight: '800', color: '#64748b', marginBottom: '36px' }}>
-          ध्वनि र संगीत सेटिङहरू (Sound & Music)
-        </div>
 
         {/* Audio Controls List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '38px' }}>
-          {/* 1. SFX Row: [Clickable Circular Icon] + Slider */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '26px', marginBottom: '20px' }}>
+          {/* 1. SFX & Pronunciation Row: [Clickable Circular Icon] + Slider */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               background: '#f1f5f9',
-              padding: '18px 26px',
-              borderRadius: '28px',
-              border: '3.5px solid #e2e8f0',
-              gap: '20px'
+              padding: '22px 30px',
+              borderRadius: '32px',
+              border: '4px solid #e2e8f0',
+              gap: '24px'
             }}
           >
             {/* Clickable SFX Circular Icon */}
@@ -88,19 +82,20 @@ export const SettingsModal = ({
                 const nextMuted = !sfxMuted;
                 setSfxMuted(nextMuted);
                 audio.sfxMuted = nextMuted;
+                audio.speechMuted = nextMuted;
                 if (!nextMuted) audio.playSelect();
               }}
-              title={sfxMuted ? 'Unmute Sound Effects' : 'Mute Sound Effects'}
+              title={sfxMuted ? 'Unmute Sound & Voice' : 'Mute Sound & Voice'}
               style={{
-                width: '74px',
-                height: '74px',
-                minWidth: '74px',
+                width: '82px',
+                height: '82px',
+                minWidth: '82px',
                 borderRadius: '50%',
                 background: sfxMuted || sfxVolume === 0 ? '#94a3b8' : '#22c55e',
                 color: '#ffffff',
-                border: '4px solid #ffffff',
-                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-                fontSize: '32px',
+                border: '5px solid #ffffff',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
+                fontSize: '38px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -115,11 +110,11 @@ export const SettingsModal = ({
 
             {/* Slider & Label Container */}
             <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b' }}>
-                  Sound Effects (SFX)
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '30px', fontWeight: '900', color: '#1e293b', letterSpacing: '1px' }}>
+                  SFX
                 </span>
-                <span style={{ fontSize: '22px', fontWeight: '900', color: '#0284c7' }}>
+                <span style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7' }}>
                   {sfxMuted ? 'Muted' : `${Math.round(sfxVolume * 100)}%`}
                 </span>
               </div>
@@ -139,8 +134,8 @@ export const SettingsModal = ({
                 }}
                 style={{
                   width: '100%',
-                  height: '16px',
-                  borderRadius: '10px',
+                  height: '25px',
+                  borderRadius: '14px',
                   accentColor: '#22c55e',
                   cursor: 'pointer'
                 }}
@@ -155,10 +150,10 @@ export const SettingsModal = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               background: '#f1f5f9',
-              padding: '18px 26px',
-              borderRadius: '28px',
-              border: '3.5px solid #e2e8f0',
-              gap: '20px'
+              padding: '22px 30px',
+              borderRadius: '32px',
+              border: '4px solid #e2e8f0',
+              gap: '24px'
             }}
           >
             {/* Clickable Music Circular Icon */}
@@ -175,15 +170,15 @@ export const SettingsModal = ({
               }}
               title={musicMuted ? 'Unmute Background Music' : 'Mute Background Music'}
               style={{
-                width: '74px',
-                height: '74px',
-                minWidth: '74px',
+                width: '82px',
+                height: '82px',
+                minWidth: '82px',
                 borderRadius: '50%',
                 background: musicMuted || musicVolume === 0 ? '#94a3b8' : '#f59e0b',
                 color: '#ffffff',
-                border: '4px solid #ffffff',
-                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-                fontSize: '32px',
+                border: '5px solid #ffffff',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.22)',
+                fontSize: '38px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -198,11 +193,11 @@ export const SettingsModal = ({
 
             {/* Slider & Label Container */}
             <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b' }}>
-                  Background Music
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '30px', fontWeight: '900', color: '#1e293b', letterSpacing: '1px' }}>
+                  MUSIC
                 </span>
-                <span style={{ fontSize: '22px', fontWeight: '900', color: '#d97706' }}>
+                <span style={{ fontSize: '26px', fontWeight: '900', color: '#d97706' }}>
                   {musicMuted ? 'Muted' : `${Math.round(musicVolume * 100)}%`}
                 </span>
               </div>
@@ -223,88 +218,9 @@ export const SettingsModal = ({
                 }}
                 style={{
                   width: '100%',
-                  height: '16px',
-                  borderRadius: '10px',
+                  height: '25px',
+                  borderRadius: '14px',
                   accentColor: '#f59e0b',
-                  cursor: 'pointer'
-                }}
-              />
-            </div>
-          </div>
-
-          {/* 3. Voice Speech Row: [Clickable Circular Icon] + Slider */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: '#f1f5f9',
-              padding: '18px 26px',
-              borderRadius: '28px',
-              border: '3.5px solid #e2e8f0',
-              gap: '20px'
-            }}
-          >
-            {/* Clickable Voice Circular Icon */}
-            <button
-              onClick={() => {
-                const nextMuted = !speechMuted;
-                setSpeechMuted(nextMuted);
-                audio.speechMuted = nextMuted;
-                if (!nextMuted) audio.speakWord('English pronunciation enabled');
-              }}
-              title={speechMuted ? 'Unmute English Voice' : 'Mute English Voice'}
-              style={{
-                width: '74px',
-                height: '74px',
-                minWidth: '74px',
-                borderRadius: '50%',
-                background: speechMuted || speechVolume === 0 ? '#94a3b8' : '#3b82f6',
-                color: '#ffffff',
-                border: '4px solid #ffffff',
-                boxShadow: '0 6px 18px rgba(0,0,0,0.25)',
-                fontSize: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'transform 0.15s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-            >
-              {speechMuted || speechVolume === 0 ? '🤐' : '🗣️'}
-            </button>
-
-            {/* Slider & Label Container */}
-            <div style={{ flex: 1, textAlign: 'left' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b' }}>
-                  English Pronunciation Voice
-                </span>
-                <span style={{ fontSize: '22px', fontWeight: '900', color: '#2563eb' }}>
-                  {speechMuted ? 'Muted' : `${Math.round(speechVolume * 100)}%`}
-                </span>
-              </div>
-
-              {/* Range Slider */}
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={speechMuted ? 0 : speechVolume}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setSpeechVolume(val);
-                  setSpeechMuted(val === 0);
-                  audio.setSpeechVolume(val);
-                }}
-                style={{
-                  width: '100%',
-                  height: '16px',
-                  borderRadius: '10px',
-                  accentColor: '#3b82f6',
                   cursor: 'pointer'
                 }}
               />
@@ -321,16 +237,16 @@ export const SettingsModal = ({
           title="Close"
           style={{
             position: 'absolute',
-            bottom: '-28px',
-            right: '-28px',
-            width: '68px',
-            height: '68px',
+            bottom: '-38px',
+            right: '-38px',
+            width: '96px',
+            height: '96px',
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
             color: '#ffffff',
-            border: '4px solid #ffffff',
-            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)',
-            fontSize: '30px',
+            border: '6px solid #ffffff',
+            boxShadow: '0 10px 28px rgba(220, 38, 38, 0.55), 0 0 20px rgba(0, 0, 0, 0.28)',
+            fontSize: '44px',
             fontWeight: '900',
             display: 'flex',
             alignItems: 'center',
@@ -345,7 +261,7 @@ export const SettingsModal = ({
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)';
+            e.currentTarget.style.boxShadow = '0 10px 28px rgba(220, 38, 38, 0.55), 0 0 20px rgba(0, 0, 0, 0.28)';
           }}
         >
           ✕

@@ -28,11 +28,13 @@ export const PauseModal = ({
       <div
         style={{
           background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-          borderRadius: '40px',
-          border: '8px solid #facc15',
+          borderRadius: '48px',
+          border: '10px solid #facc15',
           boxShadow: '0 25px 60px rgba(0, 0, 0, 0.55), 0 0 50px rgba(250, 204, 21, 0.4)',
-          padding: '46px 60px',
-          width: '620px',
+          padding: '56px 84px',
+          width: '850px',
+          maxWidth: '1000px',
+          boxSizing: 'border-box',
           textAlign: 'center',
           position: 'relative'
         }}
@@ -41,21 +43,21 @@ export const PauseModal = ({
         {/* Title */}
         <div
           style={{
-            fontSize: '48px',
+            fontSize: '56px',
             fontWeight: '900',
             color: '#1e293b',
-            marginBottom: '6px',
+            marginBottom: '8px',
             fontFamily: "'Fredoka', sans-serif"
           }}
         >
           ⏸️ Game Paused
         </div>
-        <div style={{ fontSize: '22px', fontWeight: '800', color: '#64748b', marginBottom: '38px' }}>
+        <div style={{ fontSize: '26px', fontWeight: '800', color: '#64748b', marginBottom: '44px' }}>
           खेल रोकिएको छ (Game is Paused)
         </div>
 
         {/* Action Buttons List: Resume, Restart, Quit */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '26px', marginBottom: '14px' }}>
           {/* Resume Button */}
           <button
             onClick={() => {
@@ -65,12 +67,12 @@ export const PauseModal = ({
             style={{
               background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
               color: '#ffffff',
-              padding: '18px 0',
-              borderRadius: '24px',
-              fontSize: '28px',
+              padding: '24px 0',
+              borderRadius: '28px',
+              fontSize: '34px',
               fontWeight: '900',
-              border: '4px solid #bbf7d0',
-              boxShadow: '0 8px 24px rgba(34, 197, 94, 0.45)',
+              border: '5px solid #bbf7d0',
+              boxShadow: '0 10px 28px rgba(34, 197, 94, 0.45)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -92,12 +94,12 @@ export const PauseModal = ({
             style={{
               background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
               color: '#ffffff',
-              padding: '18px 0',
-              borderRadius: '24px',
-              fontSize: '26px',
+              padding: '24px 0',
+              borderRadius: '28px',
+              fontSize: '32px',
               fontWeight: '900',
-              border: '4px solid #bae6fd',
-              boxShadow: '0 8px 24px rgba(2, 132, 199, 0.4)',
+              border: '5px solid #bae6fd',
+              boxShadow: '0 10px 28px rgba(2, 132, 199, 0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -119,12 +121,12 @@ export const PauseModal = ({
             style={{
               background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               color: '#ffffff',
-              padding: '18px 0',
-              borderRadius: '24px',
-              fontSize: '26px',
+              padding: '24px 0',
+              borderRadius: '28px',
+              fontSize: '32px',
               fontWeight: '900',
-              border: '4px solid #fecaca',
-              boxShadow: '0 8px 24px rgba(220, 38, 38, 0.4)',
+              border: '5px solid #fecaca',
+              boxShadow: '0 10px 28px rgba(220, 38, 38, 0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -147,16 +149,16 @@ export const PauseModal = ({
           title="Close"
           style={{
             position: 'absolute',
-            bottom: '-28px',
-            right: '-28px',
-            width: '68px',
-            height: '68px',
+            bottom: '-38px',
+            right: '-38px',
+            width: '96px',
+            height: '96px',
             borderRadius: '50%',
             background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
             color: '#ffffff',
-            border: '4px solid #ffffff',
-            boxShadow: '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)',
-            fontSize: '30px',
+            border: '6px solid #ffffff',
+            boxShadow: '0 10px 28px rgba(220, 38, 38, 0.55), 0 0 20px rgba(0, 0, 0, 0.28)',
+            fontSize: '44px',
             fontWeight: '900',
             display: 'flex',
             alignItems: 'center',
@@ -171,7 +173,7 @@ export const PauseModal = ({
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(220, 38, 38, 0.5), 0 0 16px rgba(0, 0, 0, 0.25)';
+            e.currentTarget.style.boxShadow = '0 10px 28px rgba(220, 38, 38, 0.55), 0 0 20px rgba(0, 0, 0, 0.28)';
           }}
         >
           ✕

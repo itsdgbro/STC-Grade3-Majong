@@ -1,0 +1,509 @@
+[
+  {
+    "id": 1,
+    "headerBadge": "SAVE THE CHILDREN • GRADE 4 ENGLISH",
+    "title": "Himalayan Word Mahjong",
+    "subtitle": "Vocabulary Solitaire (हिमाली शब्द माजोङ)",
+    "description": "Match the word pairs across 3 continuous rounds! Clear all open tiles to win!",
+    "relationshipType": "Vocabulary Pairs",
+    "mascotTip": "Pick tiles from the outer sides or top peak first to free the tiles beneath!",
+    "themeColor": "#0284c7",
+    "bgGradient": "linear-gradient(180deg, #38bdf8 0%, #0284c7 60%, #0369a1 100%)",
+    "starTimes": {
+      "threeStars": 90,
+      "twoStars": 150
+    },
+    "questions": [
+      {
+        "id": "img1",
+        "word1": "Good",
+        "word2": "Morning",
+        "relation": "Greetings",
+        "hint": "Complete the greeting used in the morning."
+      },
+      {
+        "id": "img2",
+        "word1": "Introduce",
+        "word2": "Friend",
+        "relation": "Greetings",
+        "hint": "Complete the expression May I ___ myself?"
+      },
+      {
+        "id": "img3",
+        "word1": "Again",
+        "word2": "See",
+        "relation": "Greetings",
+        "hint": "Complete See you ___."
+      },
+      {
+        "id": "img4",
+        "word1": "Hi",
+        "word2": "Hello",
+        "relation": "Greeting Responses",
+        "hint": "Match the greeting Hi with a suitable greeting."
+      },
+      {
+        "id": "img5",
+        "word1": "Anna",
+        "word2": "Freya",
+        "relation": "Listening Names",
+        "hint": "Choose the speaker's name from the listening exercise."
+      },
+      {
+        "id": "img6",
+        "word1": "Beautiful",
+        "word2": "Nice",
+        "relation": "Describing Words",
+        "hint": "Choose a word describing the small town."
+      },
+      {
+        "id": "img7",
+        "word1": "Pakistan",
+        "word2": "Islamabad",
+        "relation": "Reading Match",
+        "hint": "Find Hamid's country."
+      },
+      {
+        "id": "img8",
+        "word1": "Brothers",
+        "word2": "Sister",
+        "relation": "Family Reading",
+        "hint": "Find the male siblings Hamid has."
+      },
+      {
+        "id": "img9",
+        "word1": "Old",
+        "word2": "Young",
+        "relation": "Family Reading",
+        "hint": "Complete nine years ___."
+      },
+      {
+        "id": "img10",
+        "word1": "Dog",
+        "word2": "Woof",
+        "relation": "Animal Sounds",
+        "hint": "Match the animal with its sound."
+      },
+      {
+        "id": "img11",
+        "word1": "Cat",
+        "word2": "Meow",
+        "relation": "Animal Sounds",
+        "hint": "Match the animal with its sound."
+      },
+      {
+        "id": "img12",
+        "word1": "Mouse",
+        "word2": "Squeak",
+        "relation": "Animal Sounds",
+        "hint": "Match the animal with its sound."
+      },
+      {
+        "id": "img13",
+        "word1": "Bird",
+        "word2": "Tweet",
+        "relation": "Animal Sounds",
+        "hint": "Match the animal with its sound."
+      },
+      {
+        "id": "img14",
+        "word1": "Fish",
+        "word2": "Glub",
+        "relation": "Animal Sounds",
+        "hint": "Match the animal with its sound."
+      },
+      {
+        "id": "img15",
+        "word1": "Pet",
+        "word2": "Billy",
+        "relation": "Reading Match",
+        "hint": "Find what Billy is."
+      },
+      {
+        "id": "img16",
+        "word1": "Trumpet",
+        "word2": "America",
+        "relation": "Reading Match",
+        "hint": "Find Shambhu's musical instrument."
+      },
+      {
+        "id": "img17",
+        "word1": "Laptop",
+        "word2": "Internet",
+        "relation": "Reading Match",
+        "hint": "Find Mary's device."
+      },
+      {
+        "id": "img18",
+        "word1": "Relieve",
+        "word2": "Meditation",
+        "relation": "Word Meanings",
+        "hint": "Complete the sentence about reducing stress."
+      },
+      {
+        "id": "img19",
+        "word1": "Professional",
+        "word2": "Musician",
+        "relation": "Word Meanings",
+        "hint": "Complete a sentence about a person's occupation."
+      },
+      {
+        "id": "img20",
+        "word1": "Trumpet",
+        "word2": "Laptop",
+        "relation": "Personal Belongings",
+        "hint": "Find the instrument owned by Shambhu."
+      },
+      {
+        "id": "img21",
+        "word1": "Den",
+        "word2": "Home",
+        "relation": "Word Meanings",
+        "hint": "Find the fox's home."
+      },
+      {
+        "id": "img22",
+        "word1": "Poke",
+        "word2": "Outside",
+        "relation": "Word Meanings",
+        "hint": "Find the meaning of poke in the poem exercise."
+      },
+      {
+        "id": "img23",
+        "word1": "Sniff",
+        "word2": "Smell",
+        "relation": "Word Meanings",
+        "hint": "Find the action used to detect danger."
+      },
+      {
+        "id": "img24",
+        "word1": "Peer",
+        "word2": "Look",
+        "relation": "Word Meanings",
+        "hint": "Find the word meaning look with concentration."
+      },
+      {
+        "id": "img25",
+        "word1": "Creep",
+        "word2": "Slowly",
+        "relation": "Word Meanings",
+        "hint": "Find the fox's careful movement."
+      },
+      {
+        "id": "img26",
+        "word1": "Leap",
+        "word2": "Jump",
+        "relation": "Word Meanings",
+        "hint": "Find the word meaning jump across."
+      },
+      {
+        "id": "img27",
+        "word1": "Head",
+        "word2": "Shed",
+        "relation": "Rhyming Words",
+        "hint": "Find a word rhyming with head in the poem."
+      },
+      {
+        "id": "img28",
+        "word1": "Ears",
+        "word2": "Hears",
+        "relation": "Rhyming Words",
+        "hint": "Find a word rhyming with ears."
+      },
+      {
+        "id": "img29",
+        "word1": "Tells",
+        "word2": "Smells",
+        "relation": "Rhyming Words",
+        "hint": "Find a word rhyming with tells."
+      },
+      {
+        "id": "img30",
+        "word1": "Right",
+        "word2": "Night",
+        "relation": "Rhyming Words",
+        "hint": "Find a word rhyming with right."
+      },
+      {
+        "id": "img31",
+        "word1": "Leaps",
+        "word2": "Creeps",
+        "relation": "Rhyming Words",
+        "hint": "Find a word rhyming with leaps."
+      },
+      {
+        "id": "img32",
+        "word1": "Rules",
+        "word2": "Timetables",
+        "relation": "School Vocabulary",
+        "hint": "Find what pupils follow at school."
+      },
+      {
+        "id": "img33",
+        "word1": "Registration",
+        "word2": "Assembly",
+        "relation": "School Vocabulary",
+        "hint": "Complete the timetable vocabulary sentence."
+      },
+      {
+        "id": "img34",
+        "word1": "Break",
+        "word2": "Lunch",
+        "relation": "School Vocabulary",
+        "hint": "Find the short rest between lessons."
+      },
+      {
+        "id": "img35",
+        "word1": "Geography",
+        "word2": "History",
+        "relation": "School Subjects",
+        "hint": "Find the subject using a globe."
+      },
+      {
+        "id": "img36",
+        "word1": "Monday",
+        "word2": "Friday",
+        "relation": "Days",
+        "hint": "Find a weekday in the timetable."
+      },
+      {
+        "id": "img37",
+        "word1": "Always",
+        "word2": "Never",
+        "relation": "Frequency Words",
+        "hint": "Find the adverb meaning every time."
+      },
+      {
+        "id": "img38",
+        "word1": "Usually",
+        "word2": "Often",
+        "relation": "Frequency Words",
+        "hint": "Find the adverb used for a usual routine."
+      },
+      {
+        "id": "img39",
+        "word1": "Sometimes",
+        "word2": "Never",
+        "relation": "Frequency Words",
+        "hint": "Find the adverb meaning on some occasions."
+      },
+      {
+        "id": "img40",
+        "word1": "Library",
+        "word2": "Card",
+        "relation": "Library Rules",
+        "hint": "Find the place where the rules apply."
+      },
+      {
+        "id": "img41",
+        "word1": "Computers",
+        "word2": "Work",
+        "relation": "Library Rules",
+        "hint": "Find the devices reserved for school use."
+      },
+      {
+        "id": "img42",
+        "word1": "Running",
+        "word2": "Shouting",
+        "relation": "Library Rules",
+        "hint": "Find an activity forbidden in the library."
+      },
+      {
+        "id": "img43",
+        "word1": "Borrow",
+        "word2": "Books",
+        "relation": "Library Rules",
+        "hint": "Find what students can do with library books."
+      },
+      {
+        "id": "img44",
+        "word1": "Turn",
+        "word2": "Page",
+        "relation": "Classroom Requests",
+        "hint": "Complete the classroom request song."
+      },
+      {
+        "id": "img45",
+        "word1": "Pencil",
+        "word2": "Scissors",
+        "relation": "Classroom Items",
+        "hint": "Find one classroom item requested in the song."
+      },
+      {
+        "id": "img46",
+        "word1": "Open",
+        "word2": "Door",
+        "relation": "Requests",
+        "hint": "Complete a polite request."
+      },
+      {
+        "id": "img47",
+        "word1": "Hold",
+        "word2": "Pass",
+        "relation": "Requests",
+        "hint": "Find the action in Can you ___ this for me?"
+      },
+      {
+        "id": "img48",
+        "word1": "Deep",
+        "word2": "Breath",
+        "relation": "Requests",
+        "hint": "Complete the request for breathing."
+      },
+      {
+        "id": "img49",
+        "word1": "Salt",
+        "word2": "Tea",
+        "relation": "Requests",
+        "hint": "Find what someone is asked to pass."
+      },
+      {
+        "id": "img50",
+        "word1": "Forest",
+        "word2": "Crow",
+        "relation": "Story Vocabulary",
+        "hint": "Find where the fox story takes place."
+      },
+      {
+        "id": "img51",
+        "word1": "Cheese",
+        "word2": "Beak",
+        "relation": "Story Vocabulary",
+        "hint": "Find what the fox wants."
+      },
+      {
+        "id": "img52",
+        "word1": "Hungry",
+        "word2": "Food",
+        "relation": "Story Vocabulary",
+        "hint": "Find how the fox feels."
+      },
+      {
+        "id": "img53",
+        "word1": "Clever",
+        "word2": "Idea",
+        "relation": "Story Vocabulary",
+        "hint": "Find how the fox is described."
+      },
+      {
+        "id": "img54",
+        "word1": "Voice",
+        "word2": "Song",
+        "relation": "Story Vocabulary",
+        "hint": "Find what the fox praises."
+      },
+      {
+        "id": "img55",
+        "word1": "Step",
+        "word2": "Cry",
+        "relation": "Past Tense",
+        "hint": "Give the past-form verb for the lion story."
+      },
+      {
+        "id": "img56",
+        "word1": "See",
+        "word2": "Go",
+        "relation": "Past Tense",
+        "hint": "Give the past form of see."
+      },
+      {
+        "id": "img57",
+        "word1": "Examine",
+        "word2": "Pull",
+        "relation": "Past Tense",
+        "hint": "Give the past-form verbs used by the shepherd."
+      },
+      {
+        "id": "img58",
+        "word1": "Wag",
+        "word2": "Thank",
+        "relation": "Past Tense",
+        "hint": "Give the past form of wag."
+      },
+      {
+        "id": "img59",
+        "word1": "Come",
+        "word2": "Take",
+        "relation": "Past Tense",
+        "hint": "Give the past form of come."
+      },
+      {
+        "id": "img60",
+        "word1": "Roar",
+        "word2": "Recognize",
+        "relation": "Past Tense",
+        "hint": "Give the past form of roar."
+      },
+      {
+        "id": "img61",
+        "word1": "Range",
+        "word2": "Stripes",
+        "relation": "Shop Vocabulary",
+        "hint": "Complete the shop text about a choice of shirts."
+      },
+      {
+        "id": "img62",
+        "word1": "Collar",
+        "word2": "Giftwrap",
+        "relation": "Shop Vocabulary",
+        "hint": "Find the part around a shirt's neck."
+      },
+      {
+        "id": "img63",
+        "word1": "Stuck",
+        "word2": "Call",
+        "relation": "Shop Vocabulary",
+        "hint": "Find the word meaning fixed on the cover."
+      },
+      {
+        "id": "img64",
+        "word1": "Many",
+        "word2": "Much",
+        "relation": "Quantity",
+        "hint": "Use the word for a large number of countable items."
+      },
+      {
+        "id": "img65",
+        "word1": "Countable",
+        "word2": "Uncountable",
+        "relation": "Noun Types",
+        "hint": "Classify nouns that can be counted."
+      },
+      {
+        "id": "img66",
+        "word1": "Child",
+        "word2": "Children",
+        "relation": "Plural Forms",
+        "hint": "Find the singular form."
+      },
+      {
+        "id": "img67",
+        "word1": "Mouse",
+        "word2": "Mice",
+        "relation": "Plural Forms",
+        "hint": "Find the singular form."
+      },
+      {
+        "id": "img68",
+        "word1": "Woman",
+        "word2": "Women",
+        "relation": "Plural Forms",
+        "hint": "Find the singular form."
+      },
+      {
+        "id": "img69",
+        "word1": "Man",
+        "word2": "Men",
+        "relation": "Plural Forms",
+        "hint": "Find the singular form."
+      },
+      {
+        "id": "img70",
+        "word1": "Foot",
+        "word2": "Feet",
+        "relation": "Plural Forms",
+        "hint": "Find the singular form."
+      }
+    ]
+  }
+]
