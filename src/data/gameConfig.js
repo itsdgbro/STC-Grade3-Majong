@@ -44,10 +44,7 @@ export const GAME_CONFIG = {
   HINTS_PER_ROUND: 3,
 
   // Points awarded per correct match
-  SCORE_PER_MATCH: 100,
-
-  // AFK Idle cooldown timeout in seconds before auto-pausing (e.g. 30 seconds)
-  AFK_COOLDOWN_SECONDS: 30
+  SCORE_PER_MATCH: 3
 };
 
 

@@ -9,6 +9,7 @@ import { GlobalTopBar } from './components/GlobalTopBar';
 import { Tile } from './components/Tile';
 import { Mascot } from './components/Mascot';
 import { VictoryModal } from './components/VictoryModal';
+import { GameOverModal } from './components/GameOverModal';
 import { LEVELS as DEFAULT_LEVELS } from './data/gameData';
 import { loadGameLevels } from './utils/dataLoader';
 import {
@@ -20,7 +21,6 @@ import {
 } from './utils/mahjongEngine';
 import { GAME_CONFIG } from './data/gameConfig';
 import { audio } from './utils/audio';
-import { formatTime } from './utils/timeFormatter';
 import { flutterBridge } from './utils/flutterBridge';
 import { BridgeDebugOverlay } from './components/BridgeDebugOverlay';
 
@@ -43,6 +43,7 @@ export default function App() {
   const [retriedQuestionIds, setRetriedQuestionIds] = useState(new Set());
   const [masteredQuestionIds, setMasteredQuestionIds] = useState(new Set());
   const [usedQuestionIds, setUsedQuestionIds] = useState(new Set());
+  const [questionStats, setQuestionStats] = useState({});
   const [roundTransitionBanner, setRoundTransitionBanner] = useState(null); // e.g. "Round 2"
 
   // Gameplay state
@@ -62,6 +63,9 @@ export default function App() {
   const [victoryStats, setVictoryStats] = useState({ stars: 3, timeBonus: 0, finalScore: 0, finalXp: 0 });
   const [timer, setTimer] = useState(0);
   const [isGameActive, setIsGameActive] = useState(false);
+  const [hearts, setHearts] = useState(5);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [heartLostAnim, setHeartLostAnim] = useState(false);
 
   // Audio state
   const [sfxVolume, setSfxVolume] = useState(0.8);
@@ -120,53 +124,120 @@ export default function App() {
   }, [activeTiles]);
 
   /**
-   * Selects 3 question pairs for the round with learning personalization.
-   * Priority:
-   * 1. Questions that were failed in a previous round and haven't been retried yet.
-   * 2. Fresh questions from the pool that haven't been answered yet.
-   * 3. Any questions in pool if all have been used.
+   * Selects adaptive question pairs for the round with strict uniqueness:
+   * 1. Mistaken / multiple-tried questions are prioritized to be asked again.
+   * 2. Fresh unseen questions from the pool are selected next.
+   * 3. Easy words (solved on first try with 0 errors) are asked least / not repeated.
+   * 4. Enforces STRICT uniqueness: no duplicate words or icons anywhere in the round.
    */
-  const selectQuestionsForRound = useCallback((currentFailed, currentRetried, currentUsed, pool) => {
+  const selectQuestionsForRound = useCallback((currentStats, currentFailed, currentUsed, pool) => {
     const chosenQuestions = [];
-    const newRetried = new Set(currentRetried);
+    const usedWordsInRound = new Set();
+    const usedIconsInRound = new Set();
     const newUsed = new Set(currentUsed);
 
-    // 1. Check for pending retries (questions failed but not yet retried)
-    const pendingRetryIds = Array.from(currentFailed).filter((id) => !currentRetried.has(id));
-    for (const qId of pendingRetryIds) {
+    const getStats = (id) => currentStats[id] || { id, errorCount: 0, roundsEncountered: 0, easy: false, mastered: false };
+
+    // Strict uniqueness check: verify candidate question does not share any word or icon with chosen pairs in this round
+    const canAdd = (q) => {
+      if (!q || !q.id) return false;
+      if (chosenQuestions.some((cq) => cq.id === q.id)) return false;
+
+      const w1 = (q.word1 || '').trim().toLowerCase();
+      const w2 = (q.word2 || '').trim().toLowerCase();
+      if (!w1 && !w2) return false;
+
+      const i1 = (q.icon1 || '').trim();
+      const i2 = (q.icon2 || '').trim();
+      const hasDistinctIcons = Boolean(i1 || i2);
+
+      // If word1 and word2 are identical text with no distinct icons, reject to prevent duplicate tiles
+      if (w1 && w2 && w1 === w2 && !hasDistinctIcons) return false;
+
+      // Reject if either word already appears in this round
+      if (w1 && usedWordsInRound.has(w1)) return false;
+      if (w2 && usedWordsInRound.has(w2)) return false;
+
+      // Reject if either icon already appears in this round
+      if (i1 && usedIconsInRound.has(i1)) return false;
+      if (i2 && usedIconsInRound.has(i2)) return false;
+
+      return true;
+    };
+
+    const addQuestion = (q) => {
+      chosenQuestions.push(q);
+      newUsed.add(q.id);
+
+      const w1 = (q.word1 || '').trim().toLowerCase();
+      const w2 = (q.word2 || '').trim().toLowerCase();
+      const i1 = (q.icon1 || '').trim();
+      const i2 = (q.icon2 || '').trim();
+
+      if (w1) usedWordsInRound.add(w1);
+      if (w2) usedWordsInRound.add(w2);
+      if (i1) usedIconsInRound.add(i1);
+      if (i2) usedIconsInRound.add(i2);
+    };
+
+    // Priority 1: Mistaken / Multiple-tried questions that need retry (sorted by highest errorCount first)
+    const mistakenQuestions = pool
+      .filter((q) => {
+        const stats = getStats(q.id);
+        return currentFailed.has(q.id) || (stats.needsReview && (stats.errorCount || 0) > 0);
+      })
+      .sort((a, b) => (getStats(b.id).errorCount || 0) - (getStats(a.id).errorCount || 0));
+
+    for (const q of mistakenQuestions) {
       if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
-      const found = pool.find((q) => q.id === qId);
-      if (found) {
-        chosenQuestions.push(found);
-        newRetried.add(qId);
+      if (canAdd(q)) {
+        addQuestion(q);
       }
     }
 
-    // 2. Fill remaining quota with fresh unused questions
-    const unusedQuestions = pool.filter(
+    // Priority 2: Fresh unseen questions from pool that haven't been asked yet
+    const unseenQuestions = pool.filter(
       (q) => !newUsed.has(q.id) && !chosenQuestions.some((cq) => cq.id === q.id)
     );
-    const shuffledUnused = [...unusedQuestions].sort(() => Math.random() - 0.5);
+    const shuffledUnseen = [...unseenQuestions].sort(() => Math.random() - 0.5);
 
-    for (const q of shuffledUnused) {
+    for (const q of shuffledUnseen) {
       if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
-      chosenQuestions.push(q);
-      newUsed.add(q.id);
+      if (canAdd(q)) {
+        addQuestion(q);
+      }
     }
 
-    // 3. Fallback: if pool exhausted, fill from anywhere in pool
+    // Priority 3: Fallback (if unseen exhausted, pick questions not marked as easy)
     if (chosenQuestions.length < PAIRS_PER_ROUND) {
-      const remainingPool = pool.filter((q) => !chosenQuestions.some((cq) => cq.id === q.id));
-      const shuffledRest = [...remainingPool].sort(() => Math.random() - 0.5);
-      for (const q of shuffledRest) {
+      const nonEasyPool = pool.filter(
+        (q) => !getStats(q.id).easy && !chosenQuestions.some((cq) => cq.id === q.id)
+      );
+      const shuffledNonEasy = [...nonEasyPool].sort(() => Math.random() - 0.5);
+      for (const q of shuffledNonEasy) {
         if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
-        chosenQuestions.push(q);
+        if (canAdd(q)) {
+          addQuestion(q);
+        }
+      }
+    }
+
+    // Priority 4: Ultimate pool fallback (only if pool completely exhausted)
+    if (chosenQuestions.length < PAIRS_PER_ROUND) {
+      const remainingPool = pool.filter(
+        (q) => !chosenQuestions.some((cq) => cq.id === q.id)
+      );
+      const shuffledRemaining = [...remainingPool].sort(() => Math.random() - 0.5);
+      for (const q of shuffledRemaining) {
+        if (chosenQuestions.length >= PAIRS_PER_ROUND) break;
+        if (canAdd(q)) {
+          addQuestion(q);
+        }
       }
     }
 
     return {
       selectedQuestions: chosenQuestions,
-      updatedRetried: newRetried,
       updatedUsed: newUsed
     };
   }, []);
@@ -178,14 +249,15 @@ export default function App() {
     const activeLevel = levels[0] || DEFAULT_LEVELS[0];
     const fullPool = activeLevel.questions || activeLevel.vocabularyPool || [];
 
+    let currentStats = questionStats;
     let currentFailed = failedQuestionIds;
-    let currentRetried = retriedQuestionIds;
     let currentUsed = usedQuestionIds;
 
     if (isNewGame) {
+      currentStats = {};
       currentFailed = new Set();
-      currentRetried = new Set();
       currentUsed = new Set();
+      setQuestionStats({});
       setFailedQuestionIds(new Set());
       setRetriedQuestionIds(new Set());
       setMasteredQuestionIds(new Set());
@@ -193,23 +265,38 @@ export default function App() {
       setScore(0);
       setXp(0);
       setTimer(0);
+      setHearts(5);
+      setIsGameOver(false);
     }
 
-    // Select 3 adaptive questions
-    const { selectedQuestions, updatedRetried, updatedUsed } = selectQuestionsForRound(
+    // Select adaptive questions with strict uniqueness
+    const { selectedQuestions, updatedUsed } = selectQuestionsForRound(
+      currentStats,
       currentFailed,
-      currentRetried,
       currentUsed,
       fullPool
     );
 
-    setRetriedQuestionIds(updatedRetried);
     setUsedQuestionIds(updatedUsed);
+
+    // Track roundsEncountered in questionStats and reset errorsThisRound
+    setQuestionStats((prev) => {
+      const next = { ...prev };
+      selectedQuestions.forEach((q) => {
+        const cur = next[q.id] || { id: q.id, errorCount: 0, roundsEncountered: 0, easy: false, mastered: false, needsReview: false, errorsThisRound: 0 };
+        next[q.id] = {
+          ...cur,
+          roundsEncountered: cur.roundsEncountered + 1,
+          errorsThisRound: 0
+        };
+      });
+      return next;
+    });
 
     // Dynamically retrieve the layout template configured for this number of pairs
     const currentLayout = getLayoutForPairs(PAIRS_PER_ROUND);
 
-    // Generate guaranteed-solvable layout with exactly PAIRS_PER_ROUND pairs
+    // Generate guaranteed-solvable layout with exactly PAIRS_PER_ROUND unique pairs
     const generatedTiles = generateSolutionFirstPuzzle(
       currentLayout,
       selectedQuestions,
@@ -226,6 +313,8 @@ export default function App() {
     setMoveHistory([]);
     setMascotMood('happy');
     setHintsRemaining(3);
+    setHearts(5);
+    setIsGameOver(false);
     setIsVictory(false);
     setIsGameActive(true);
 
@@ -278,38 +367,25 @@ export default function App() {
   }, [showBridgeDebug, startRound]);
 
 
-  // Timer interval with AFK auto-pause safeguard
+  // Timer interval
   useEffect(() => {
     let interval = null;
-    let lastActivityTime = Date.now();
 
-    const resetActivity = () => {
-      lastActivityTime = Date.now();
-    };
-
-    window.addEventListener('pointerdown', resetActivity);
-    window.addEventListener('keydown', resetActivity);
-
-    if (isGameActive && !isVictory && !showPause && scene === 'GAME') {
-      const afkTimeoutMs = (GAME_CONFIG.AFK_COOLDOWN_SECONDS || 30) * 1000;
+    if (isGameActive && !isVictory && !isGameOver && !showPause && scene === 'GAME') {
       interval = setInterval(() => {
-        if (Date.now() - lastActivityTime >= afkTimeoutMs) {
-          setShowPause(true);
-          return;
-        }
         setTimer((prev) => prev + 1);
       }, 1000);
     }
 
     return () => {
-      clearInterval(interval);
-      window.removeEventListener('pointerdown', resetActivity);
-      window.removeEventListener('keydown', resetActivity);
+      if (interval) clearInterval(interval);
     };
-  }, [isGameActive, isVictory, showPause, scene]);
+  }, [isGameActive, isVictory, isGameOver, showPause, scene]);
 
   // Handle Tile Selection & Learning Error Tracking
   const handleTileClick = (tile) => {
+    if (isGameOver || !isGameActive) return;
+
     // Strict Mahjong Check
     if (!freeTileIds.has(tile.id)) {
       audio.playMismatch();
@@ -328,7 +404,9 @@ export default function App() {
       setSelectedTileId(tile.id);
       audio.playSelect();
       setHintedPairIds([]);
-      if (tile.word) {
+      if (tile.hint) {
+        setMascotTip(`💡 "${tile.word || tile.partnerWord}": ${tile.hint}`);
+      } else if (tile.word) {
         setMascotTip(`You selected "${tile.word}"! Look for its matching picture!`);
       } else {
         setMascotTip(`Look for the matching word for this picture!`);
@@ -359,17 +437,18 @@ export default function App() {
       setMoveHistory((prev) => [...prev, [firstTile.id, tile.id]]);
       setSelectedTileId(null);
       setHintedPairIds([]);
-      setScore((prev) => prev + 100);
-      setXp((prev) => prev + 100);
+      setScore((prev) => prev + (GAME_CONFIG.SCORE_PER_MATCH || 3));
+      setXp((prev) => prev + (GAME_CONFIG.SCORE_PER_MATCH || 3));
       setMascotMood('correct');
 
       // Extract raw question ID (e.g. from pair_0_e1 -> e1)
       const rawQuestionId = tile.pairId.replace(/^pair_\d+_/, '');
 
       // Check if this was a previously failed/retried question that is now mastered!
-      let wasRetry = false;
-      if (failedQuestionIds.has(rawQuestionId)) {
-        wasRetry = true;
+      const prevQuestionStats = questionStats[rawQuestionId] || { id: rawQuestionId, errorCount: 0, roundsEncountered: 1, easy: false, mastered: false, needsReview: false, errorsThisRound: 0 };
+      const wasRetry = failedQuestionIds.has(rawQuestionId) || prevQuestionStats.needsReview;
+
+      if (wasRetry) {
         setFailedQuestionIds((prev) => {
           const next = new Set(prev);
           next.delete(rawQuestionId);
@@ -382,6 +461,40 @@ export default function App() {
         });
       }
 
+      // Update adaptive question statistics
+      setQuestionStats((prev) => {
+        const next = { ...prev };
+        const cur = next[rawQuestionId] || { id: rawQuestionId, errorCount: 0, roundsEncountered: 1, easy: false, mastered: false, needsReview: false, errorsThisRound: 0 };
+        const errorsInThisRound = cur.errorsThisRound || 0;
+
+        if (cur.errorCount === 0) {
+          // Solved on first attempt with 0 errors: mark easy & mastered
+          next[rawQuestionId] = {
+            ...cur,
+            easy: true,
+            mastered: true,
+            needsReview: false
+          };
+        } else if (errorsInThisRound === 0) {
+          // Previously had errors, but solved cleanly on retry round: mastered & remediated
+          next[rawQuestionId] = {
+            ...cur,
+            easy: false,
+            mastered: true,
+            needsReview: false
+          };
+        } else {
+          // Still had errors in this round: keep needsReview true for reinforcement
+          next[rawQuestionId] = {
+            ...cur,
+            easy: false,
+            mastered: false,
+            needsReview: true
+          };
+        }
+        return next;
+      });
+
       // Calculate newly uncovered tiles
       const nextActiveTiles = tiles.filter((t) => !newMatched.includes(t.id));
       const nextFreeTiles = getFreeTiles(nextActiveTiles);
@@ -391,29 +504,31 @@ export default function App() {
 
       const pairName = (firstTile.word || firstTile.partnerWord || tile.word || tile.partnerWord);
       const educationalHint = firstTile.hint || tile.hint;
-      
+
+      const pts = GAME_CONFIG.SCORE_PER_MATCH || 3;
+
       if (wasRetry) {
         setMascotMood('celebrating');
         if (educationalHint) {
-          setMascotTip(`🌟 Mastered "${pairName}"! (+100 XP) 💡 ${educationalHint}`);
+          setMascotTip(`🌟 Mastered "${pairName}"! (+${pts} pts) 💡 ${educationalHint}`);
         } else {
-          setMascotTip(`🌟 Amazing mastery! You solved "${pairName}" correctly! (+100 XP)`);
+          setMascotTip(`🌟 Amazing mastery! You solved "${pairName}" correctly! (+${pts} pts)`);
         }
         audio.speakWord(`Great job! You mastered ${pairName}! ${educationalHint || ''}`);
       } else if (newlyFreed.length > 0) {
         setJustUnlockedIds(newlyFreed);
         setTimeout(() => setJustUnlockedIds([]), 900);
         if (educationalHint) {
-          setMascotTip(`✨ "${pairName}" matched! (+100 XP) 💡 ${educationalHint}`);
+          setMascotTip(`✨ "${pairName}" matched! (+${pts} pts) 💡 ${educationalHint}`);
         } else {
-          setMascotTip(`Brilliant! "${pairName}" matched! (+100 XP) ✨`);
+          setMascotTip(`Brilliant! "${pairName}" matched! (+${pts} pts) ✨`);
         }
         audio.speakWord(`${pairName}. ${educationalHint || ''}`);
       } else {
         if (educationalHint) {
-          setMascotTip(`✨ "${pairName}" matched! (+100 XP) 💡 ${educationalHint}`);
+          setMascotTip(`✨ "${pairName}" matched! (+${pts} pts) 💡 ${educationalHint}`);
         } else {
-          setMascotTip(`Superb! "${pairName}" is a correct match! (+100 XP) ✨`);
+          setMascotTip(`Superb! "${pairName}" is a correct match! (+${pts} pts) ✨`);
         }
         audio.speakWord(`${pairName}. ${educationalHint || ''}`);
       }
@@ -440,8 +555,8 @@ export default function App() {
           const starTimes = level.starTimes || { threeStars: 90, twoStars: 150 };
           const earnedStars = timer <= starTimes.threeStars ? 3 : timer <= starTimes.twoStars ? 2 : 1;
           const timeBonus = timer < starTimes.threeStars ? Math.max(0, (starTimes.threeStars - timer) * 5) : 0;
-          const totalFinalScore = score + 100 + timeBonus;
-          const totalFinalXp = xp + 100;
+          const totalFinalScore = score + pts + timeBonus;
+          const totalFinalXp = xp + pts;
 
           setVictoryStats({
             stars: earnedStars,
@@ -455,27 +570,36 @@ export default function App() {
         }
       }
     } else {
-      // Mismatch - Penalize XP (-5, min 0), Pedagogical Scaffolding & Adaptive Failure Tracking
+      // Mismatch - Deduct 1 Heart & Check Game Over
       audio.playMismatch();
+      audio.playHeartLost();
+      setHeartLostAnim(true);
+      setTimeout(() => setHeartLostAnim(false), 600);
+
       setMismatchedIds([firstTile.id, tile.id]);
       setMascotMood('thinking');
       setXp((prev) => Math.max(0, prev - 5));
+
+      const nextHearts = Math.max(0, hearts - 1);
+      setHearts(nextHearts);
 
       const w1 = firstTile.word || firstTile.partnerWord || 'item';
       const w2 = tile.word || tile.partnerWord || 'item';
 
       // Pedagogical Contextual Scaffolding Hint Generation:
       let feedbackTip = '';
-      if (firstTile.relation && tile.relation && firstTile.relation === tile.relation) {
+      if (nextHearts === 0) {
+        feedbackTip = `💔 Out of hearts! Don't worry, practice makes perfect!`;
+      } else if (firstTile.relation && tile.relation && firstTile.relation === tile.relation) {
         // Both tiles share the same category (e.g. Opposites or Nature)
-        feedbackTip = `🤔 "${w1}" and "${w2}" are both ${firstTile.relation}, but not a matching pair. Look for ${w1}'s partner! (-5 XP)`;
+        feedbackTip = `🤔 "${w1}" and "${w2}" are both ${firstTile.relation}, but not a matching pair. Look for ${w1}'s partner! (-1 ❤️)`;
       } else if (firstTile.hint) {
         // Provide educational clue from the first tile's metadata
-        feedbackTip = `💡 Clue for "${w1}": ${firstTile.hint} (-5 XP)`;
+        feedbackTip = `💡 Clue for "${w1}": ${firstTile.hint} (-1 ❤️)`;
       } else if (firstTile.relation) {
-        feedbackTip = `🤔 "${w1}" (${firstTile.relation}) and "${w2}" do not match. Try pairing "${w1}" with its ${firstTile.relation} partner! (-5 XP)`;
+        feedbackTip = `🤔 "${w1}" (${firstTile.relation}) and "${w2}" do not match. Try pairing "${w1}" with its ${firstTile.relation} partner! (-1 ❤️)`;
       } else {
-        feedbackTip = `"${w1}" and "${w2}" are not a pair. Check the pictures and words carefully! (-5 XP)`;
+        feedbackTip = `"${w1}" and "${w2}" are not a pair. Check the pictures and words carefully! (-1 ❤️)`;
       }
 
       setMascotTip(feedbackTip);
@@ -491,11 +615,40 @@ export default function App() {
         return next;
       });
 
+      // Update adaptive statistics: mark as mistaken / multiple tried
+      setQuestionStats((prev) => {
+        const next = { ...prev };
+        [rawFirstId, rawSecondId].forEach((qid) => {
+          if (qid) {
+            const cur = next[qid] || { id: qid, errorCount: 0, roundsEncountered: 1, easy: false, mastered: false, needsReview: false, errorsThisRound: 0 };
+            next[qid] = {
+              ...cur,
+              errorCount: cur.errorCount + 1,
+              errorsThisRound: (cur.errorsThisRound || 0) + 1,
+              easy: false,
+              mastered: false,
+              needsReview: true
+            };
+          }
+        });
+        return next;
+      });
+
       // Clear selection after feedback duration
       setTimeout(() => {
         setMismatchedIds([]);
         setSelectedTileId(null);
       }, 700);
+
+      // If all hearts lost, trigger Game Over modal
+      if (nextHearts === 0) {
+        setTimeout(() => {
+          setIsGameOver(true);
+          setIsGameActive(false);
+          audio.playGameOver();
+          flutterBridge.sendGameOver(score);
+        }, 750);
+      }
     }
   };
 
@@ -512,7 +665,7 @@ export default function App() {
       audio.playHint();
       setHintedPairIds([tileA.id, tileB.id]);
       setHintsRemaining((prev) => prev - 1);
-      
+
       const educationalTip = tileA.hint || tileB.hint;
       if (educationalTip) {
         setMascotTip(`💡 "${tileA.word || tileA.partnerWord}" ↔ "${tileB.word || tileB.partnerWord}": ${educationalTip}`);
@@ -533,8 +686,9 @@ export default function App() {
     setMoveHistory((prev) => prev.slice(0, -1));
     setSelectedTileId(null);
     setHintedPairIds([]);
-    setScore((prev) => Math.max(0, prev - 100));
-    setXp((prev) => Math.max(0, prev - 100));
+    const pts = GAME_CONFIG.SCORE_PER_MATCH || 3;
+    setScore((prev) => Math.max(0, prev - pts));
+    setXp((prev) => Math.max(0, prev - pts));
     setMascotTip("↩️ Move undone! Plan your removal order carefully!");
   };
 
@@ -630,6 +784,22 @@ export default function App() {
     <AspectRatioContainer>
       {/* Cartoon Himalayan Background */}
       <HimalayanBackground themeGradient={level.bgGradient} />
+
+      {/* In-Game Subtle Background Blur & Vignette Focus Layer */}
+      {scene === 'GAME' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backdropFilter: 'blur(3.5px)',
+            WebkitBackdropFilter: 'blur(3.5px)',
+            background: 'radial-gradient(ellipse at center, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0.32) 100%)',
+            zIndex: 2,
+            pointerEvents: 'none',
+            transition: 'all 0.5s ease'
+          }}
+        />
+      )}
 
       {/* Main Menu Scene */}
       {scene === 'MENU' && (
@@ -727,162 +897,108 @@ export default function App() {
               boxSizing: 'border-box'
             }}
           >
-            {/* Left: Round & Open Pairs (positioned next to the pause/settings toolbar buttons) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82, marginLeft: '215px' }}>
-              <div
-                style={{
-                  width: '135px',
-                  boxSizing: 'border-box',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.35)',
-                  border: '3px solid #7dd3fc'
-                }}
-              >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#e0f2fe', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  ROUND
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
-                  {round} / {TOTAL_ROUNDS}
-                </div>
-              </div>
 
-              <div
-                style={{
-                  width: '140px',
-                  boxSizing: 'border-box',
-                  background: availableFreePairs.length > 0 ? '#ecfdf5' : '#fef2f2',
-                  border: `3px solid ${availableFreePairs.length > 0 ? '#10b981' : '#ef4444'}`,
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
-                }}
-                title="Playable open pairs right now"
-              >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#047857' : '#b91c1c', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  OPEN PAIRS
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: availableFreePairs.length > 0 ? '#059669' : '#dc2626', fontVariantNumeric: 'tabular-nums' }}>
-                  {availableFreePairs.length}
-                </div>
-              </div>
-            </div>
 
             {/* Center: Objective / Round Progress Banner */}
             <div
               style={{
                 position: 'absolute',
-                top: '22px',
+                top: '18px',
                 left: '50%',
                 transform: 'translateX(-50%)',
-                background: 'rgba(255, 255, 255, 0.98)',
-                padding: '14px 38px',
+                height: '84px',
+                boxSizing: 'border-box',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                padding: '10px 48px',
                 borderRadius: '50px',
                 border: '4px solid #facc15',
                 boxShadow: '0 10px 28px rgba(0,0,0,0.35)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '14px',
-                maxWidth: '750px',
+                justifyContent: 'center',
+                maxWidth: '960px',
+                whiteSpace: 'nowrap',
                 zIndex: 82
               }}
             >
-              <span style={{ fontSize: '32px' }}>🎯</span>
-              <span style={{ fontSize: '24px', fontWeight: '900', color: '#1e293b', lineHeight: '1.25' }}>
+              <span style={{ fontSize: '38px', fontWeight: '900', color: '#1e293b', lineHeight: '1.2', letterSpacing: '0.4px' }}>
                 Round {round} of {TOTAL_ROUNDS} • Match {PAIRS_PER_ROUND} Pairs!
               </span>
             </div>
 
-            {/* Right: Essential HUD (XP Bar, Score, Time) */}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '14px', zIndex: 82 }}>
-              {/* XP System Widget */}
+            {/* Right: Essential HUD (Score & 5 Hearts - Replaces XP & Timer) */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px', zIndex: 82 }}>
+              {/* Score Widget */}
               <div
                 style={{
-                  minWidth: '180px',
+                  minWidth: '260px',
+                  height: '74px',
                   boxSizing: 'border-box',
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-                  padding: '8px 14px',
-                  borderRadius: '20px',
-                  boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
-                  border: '3px solid #c4b5fd',
+                  background: 'rgba(255, 255, 255, 0.94)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  padding: '8px 28px',
+                  borderRadius: '24px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '3px'
-                }}
-                title={`Experience Points: ${xp} XP (Level ${Math.floor(xp / 300) + 1})`}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '12px', fontWeight: '900', color: '#ede9fe', letterSpacing: '0.8px' }}>
-                    ⚡ LV {Math.floor(xp / 300) + 1}
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: '900', color: '#fef08a', fontVariantNumeric: 'tabular-nums' }}>
-                    {xp} XP
-                  </div>
-                </div>
-                {/* XP Level Progress Bar */}
-                <div
-                  style={{
-                    width: '100%',
-                    height: '10px',
-                    background: 'rgba(0, 0, 0, 0.25)',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    border: '1px solid rgba(255, 255, 255, 0.2)'
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.min(100, ((xp % 300) / 300) * 100)}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #facc15 0%, #fbbf24 100%)',
-                      borderRadius: '8px',
-                      transition: 'width 0.35s ease'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  width: '130px',
-                  boxSizing: 'border-box',
-                  background: 'rgba(255, 255, 255, 0.96)',
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '16px',
                   boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                  border: '3px solid rgba(255, 255, 255, 0.9)'
+                  border: '3px solid rgba(255, 255, 255, 0.9)',
+                  whiteSpace: 'nowrap'
                 }}
               >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  SCORE
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#0284c7', fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: '34px', fontWeight: '900', color: '#475569', letterSpacing: '0.5px' }}>
+                  Score
+                </span>
+                <span style={{ fontSize: '42px', fontWeight: '900', color: '#0284c7', fontVariantNumeric: 'tabular-nums' }}>
                   {score}
-                </div>
+                </span>
               </div>
 
+              {/* 5 Hearts Widget (Replaces Timer & XP) */}
               <div
                 style={{
-                  width: '130px',
+                  height: '74px',
                   boxSizing: 'border-box',
-                  background: 'rgba(255, 255, 255, 0.96)',
-                  padding: '8px 12px',
-                  borderRadius: '20px',
-                  textAlign: 'center',
-                  boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                  border: '3px solid rgba(255, 255, 255, 0.9)'
+                  background: 'rgba(255, 255, 255, 0.94)',
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  padding: '8px 22px',
+                  borderRadius: '24px',
+                  boxShadow: heartLostAnim ? '0 4px 18px rgba(239, 68, 68, 0.45)' : '0 4px 14px rgba(0,0,0,0.2)',
+                  border: heartLostAnim ? '3px solid #ef4444' : '3px solid rgba(255, 255, 255, 0.9)',
+                  transform: heartLostAnim ? 'scale(1.06)' : 'scale(1)',
+                  transition: 'all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
+                title={`${hearts} of 5 hearts remaining`}
               >
-                <div style={{ fontSize: '13px', fontWeight: '900', color: '#64748b', letterSpacing: '0.8px', whiteSpace: 'nowrap' }}>
-                  TIME
-                </div>
-                <div style={{ fontSize: '26px', fontWeight: '900', color: '#059669', fontVariantNumeric: 'tabular-nums' }}>
-                  {formatTime(timer)}
-                </div>
+                {[1, 2, 3, 4, 5].map((hIndex) => {
+                  const isFilled = hIndex <= hearts;
+                  return (
+                    <span
+                      key={hIndex}
+                      style={{
+                        fontSize: '32px',
+                        lineHeight: '1',
+                        display: 'inline-block',
+                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        transform: isFilled ? 'scale(1)' : 'scale(0.85)',
+                        filter: isFilled
+                          ? 'drop-shadow(0 2px 4px rgba(239, 68, 68, 0.45))'
+                          : 'grayscale(100%) opacity(0.22)'
+                      }}
+                    >
+                      ❤️
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -949,6 +1065,21 @@ export default function App() {
                 transition: 'all 0.3s ease'
               }}
             >
+              {/* Subtle ambient depth aura under the tiles bringing them into sharp focus */}
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: '-36px -48px',
+                  borderRadius: '44px',
+                  background: 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 65%, transparent 100%)',
+                  backdropFilter: 'blur(5px)',
+                  WebkitBackdropFilter: 'blur(5px)',
+                  boxShadow: '0 24px 60px rgba(0, 0, 0, 0.2)',
+                  pointerEvents: 'none',
+                  zIndex: 0
+                }}
+              />
+
               {tiles.map((tile) => (
                 <Tile
                   key={tile.id}
@@ -1106,13 +1237,16 @@ export default function App() {
           <div
             style={{
               position: 'absolute',
-              bottom: '18px',
+              bottom: '20px',
               right: '28px',
-              width: '390px',
-              background: 'rgba(255, 255, 255, 0.97)',
-              borderRadius: '24px',
-              padding: '16px 26px',
-              boxShadow: '0 8px 28px rgba(0, 0, 0, 0.28)',
+              width: '490px',
+              background: 'rgba(255, 255, 255, 0.94)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderRadius: '28px',
+              padding: '20px 32px',
+              boxShadow: '0 10px 32px rgba(0, 0, 0, 0.28)',
+              border: '3px solid rgba(255, 255, 255, 0.95)',
               zIndex: 20
             }}
           >
@@ -1120,23 +1254,25 @@ export default function App() {
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: '20px',
+                alignItems: 'center',
+                fontSize: '26px',
                 fontWeight: '900',
                 color: '#1e293b',
-                marginBottom: '8px'
+                marginBottom: '12px',
+                letterSpacing: '0.3px'
               }}
             >
               <span>Round {round} Progress:</span>
-              <span style={{ color: '#0284c7' }}>
+              <span style={{ color: '#0284c7', fontVariantNumeric: 'tabular-nums' }}>
                 {matchedIds.length / 2} / {tiles.length / 2} Pairs
               </span>
             </div>
             <div
               style={{
                 width: '100%',
-                height: '18px',
+                height: '24px',
                 background: '#e2e8f0',
-                borderRadius: '12px',
+                borderRadius: '14px',
                 overflow: 'hidden'
               }}
             >
@@ -1145,7 +1281,7 @@ export default function App() {
                   width: `${(matchedIds.length / (tiles.length || 1)) * 100}%`,
                   height: '100%',
                   background: 'linear-gradient(90deg, #3b82f6, #10b981)',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   transition: 'width 0.4s ease'
                 }}
               />
@@ -1163,6 +1299,26 @@ export default function App() {
               stars={victoryStats.stars}
               onReplay={() => startRound(1, true)}
               onHome={() => setScene('MENU')}
+            />
+          )}
+
+          {/* Game Over Modal when all hearts are lost */}
+          {isGameOver && (
+            <GameOverModal
+              score={score}
+              round={round}
+              totalRounds={TOTAL_ROUNDS}
+              pairsMatched={matchedIds.length / 2}
+              totalPairs={tiles.length / 2}
+              onRetry={() => {
+                setIsGameOver(false);
+                setHearts(5);
+                startRound(round, false);
+              }}
+              onHome={() => {
+                setIsGameOver(false);
+                setScene('MENU');
+              }}
             />
           )}
         </>

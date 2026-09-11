@@ -197,6 +197,16 @@ class FlutterBridgeService {
     return this.send('LEVEL_COMPLETED', finalScore);
   }
 
+  /**
+   * Send Game Over event to Flutter
+   * Output payload: { event: "GAME_OVER", gameId, gameTitle, timeStamp, score }
+   * @param {number|Object} score
+   */
+  sendGameOver(score = 0) {
+    const finalScore = typeof score === 'object' ? (score.score || 0) : Number(score) || 0;
+    return this.send('GAME_OVER', finalScore);
+  }
+
   _recordHistory(item) {
     this.messageHistory.unshift(item);
     if (this.messageHistory.length > this.maxHistoryLength) {

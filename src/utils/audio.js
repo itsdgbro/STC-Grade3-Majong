@@ -205,6 +205,67 @@ class AudioManager {
     }
   }
 
+  playHeartLost() {
+    const vol = this.getEffectiveSfxVolume();
+    if (vol <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    try {
+      // Rapid downward double blip indicating lost heart
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(360, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(140, this.ctx.currentTime + 0.25);
+
+      gain.gain.setValueAtTime(0.2 * vol, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.26);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.26);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  playGameOver() {
+    const vol = this.getEffectiveSfxVolume();
+    if (vol <= 0) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    try {
+      // Gentle descending 4-note chime for encouraging game over
+      const notes = [
+        { f: 392.00, d: 0.2, t: 0 },    // G4
+        { f: 349.23, d: 0.2, t: 0.22 }, // F4
+        { f: 329.63, d: 0.2, t: 0.44 }, // E4
+        { f: 261.63, d: 0.5, t: 0.66 }  // C4
+      ];
+
+      notes.forEach(({ f, d, t }) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, this.ctx.currentTime + t);
+
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime + t);
+        gain.gain.linearRampToValueAtTime(0.22 * vol, this.ctx.currentTime + t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + t + d);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(this.ctx.currentTime + t);
+        osc.stop(this.ctx.currentTime + t + d);
+      });
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
   playHint() {
     const vol = this.getEffectiveSfxVolume();
     if (vol <= 0) return;
