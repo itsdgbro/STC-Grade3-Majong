@@ -1,34 +1,32 @@
 import React, { useEffect, useState } from 'react';
 
 /**
- * Ensures the entire game is locked to a 1080x1920 (9:16 portrait) viewport,
+ * Ensures the entire game is locked to a 1920x1080 (16:9) viewport,
  * centered with solid black bars on excess spaces (letterbox / pillarbox).
  */
 export const AspectRatioContainer = ({ children }) => {
   const [scale, setScale] = useState(1);
-  const [isLandscape, setIsLandscape] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
 
   useEffect(() => {
-    // Attempt screen orientation lock to portrait if supported
+    // Attempt screen orientation lock if supported
     if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
-      window.screen.orientation.lock('portrait').catch(() => {
+      window.screen.orientation.lock('landscape').catch(() => {
         // Not all browsers support programmatic locking without user gesture
       });
     }
 
     const handleResize = () => {
-      const targetWidth = 1080;
-      const targetHeight = 1920;
+      const targetWidth = 1920;
+      const targetHeight = 1080;
       
       // Support visualViewport for mobile browser bars and pinch zoom prevention
       const windowWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
       const windowHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
-      // On mobile / handheld touch devices (or max-height < 600px), prompt portrait if held sideways
-      const isMobileDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || windowWidth < 600;
-      setIsLandscape(isMobileDevice && windowWidth > windowHeight);
+      setIsPortrait(windowHeight > windowWidth);
 
-      // Scale to fit while preserving 9:16 strictly without distortion
+      // Scale to fit while preserving 16:9 strictly without distortion
       const currentScale = Math.min(windowWidth / targetWidth, windowHeight / targetHeight);
       setScale(currentScale);
     };
@@ -62,9 +60,9 @@ export const AspectRatioContainer = ({ children }) => {
         position: 'relative'
       }}
     >
-      {/* Rotate Device Overlay shown when device is held in landscape on small screens */}
-      <div className="rotate-device-overlay" style={{ display: isLandscape ? 'flex' : 'none' }}>
-        <div className="rotate-phone-icon" style={{ transform: 'rotate(90deg)' }}>📱</div>
+      {/* Rotate Device Overlay shown strictly when device is in Portrait */}
+      <div className="rotate-device-overlay" style={{ display: isPortrait ? 'flex' : 'none' }}>
+        <div className="rotate-phone-icon">📱</div>
         <h2
           style={{
             fontSize: '36px',
@@ -74,7 +72,7 @@ export const AspectRatioContainer = ({ children }) => {
             fontFamily: "'Fredoka', sans-serif"
           }}
         >
-          Please Rotate to Portrait
+          Please Rotate Your Device
         </h2>
         <div
           style={{
@@ -84,7 +82,7 @@ export const AspectRatioContainer = ({ children }) => {
             marginBottom: '16px'
           }}
         >
-          कृपया आफ्नो डिभाइसलाई ठाडो पार्नुहोस् (Portrait Mode)
+          कृपया आफ्नो डिभाइसलाई तेर्सो पार्नुहोस् (Landscape Mode)
         </div>
         <p
           style={{
@@ -95,7 +93,7 @@ export const AspectRatioContainer = ({ children }) => {
             margin: 0
           }}
         >
-          This Crossword game is optimized for vertical portrait play.
+          This Mahjong game is optimized for landscape play for the best visual experience.
         </p>
       </div>
 

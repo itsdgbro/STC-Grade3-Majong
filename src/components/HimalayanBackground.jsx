@@ -79,34 +79,34 @@ export const HimalayanBackground = ({ themeGradient }) => {
 
       {/* Distant Snow Mountains (Himalayas) */}
       <svg
-        viewBox="0 0 1080 800"
+        viewBox="0 0 1920 600"
         preserveAspectRatio="none"
         style={{
           position: 'absolute',
-          bottom: '360px',
+          bottom: '220px',
           left: 0,
           right: 0,
           width: '100%',
-          height: '520px',
+          height: '440px',
           opacity: 0.95
         }}
       >
-        <polygon points="0,700 120,420 380,220 540,550 720,700" fill="#cbd5e1" />
-        <polygon points="380,220 340,300 380,320 410,280" fill="#f8fafc" />
-        <polygon points="380,220 410,280 440,330 380,320" fill="#e2e8f0" />
+        <polygon points="0,520 100,500 450,120 750,500 900,520" fill="#cbd5e1" />
+        <polygon points="450,120 400,200 450,220 480,180" fill="#f8fafc" />
+        <polygon points="450,120 480,180 520,230 450,220" fill="#e2e8f0" />
 
-        <polygon points="260,750 540,110 880,750" fill="#94a3b8" />
-        <polygon points="540,110 470,220 520,250 540,230" fill="#ffffff" />
-        <polygon points="540,110 540,230 590,260 620,210" fill="#e2e8f0" />
+        <polygon points="500,550 960,60 1450,550" fill="#94a3b8" />
+        <polygon points="960,60 880,180 940,210 960,190" fill="#ffffff" />
+        <polygon points="960,60 960,190 1020,210 1050,160" fill="#e2e8f0" />
 
-        <polygon points="650,750 900,200 1080,550 1080,750" fill="#cbd5e1" />
-        <polygon points="900,200 850,290 900,310 930,260" fill="#ffffff" />
-        <polygon points="900,200 930,260 970,300 900,310" fill="#e2e8f0" />
+        <polygon points="1100,500 1520,140 1920,480 1920,550 1100,550" fill="#cbd5e1" />
+        <polygon points="1520,140 1460,230 1520,250 1560,200" fill="#ffffff" />
+        <polygon points="1520,140 1560,200 1600,240 1520,250" fill="#e2e8f0" />
       </svg>
 
       {/* Prayer Flags (Nepal Dhoja) */}
       <svg
-        viewBox="0 0 1080 120"
+        viewBox="0 0 1920 120"
         preserveAspectRatio="none"
         style={{
           position: 'absolute',
@@ -114,27 +114,38 @@ export const HimalayanBackground = ({ themeGradient }) => {
           left: 0,
           right: 0,
           width: '100%',
-          height: '110px',
+          height: '90px',
           opacity: 0.85
         }}
       >
-        <path d="M 0,20 Q 540,75 1080,20" fill="none" stroke="#64748b" strokeWidth="2.5" strokeDasharray="4 2" />
+        <path d="M 0,20 Q 480,65 960,20 Q 1440,65 1920,20" fill="none" stroke="#64748b" strokeWidth="2" strokeDasharray="4 2" />
         {[
-          { x: 60, y: 26, fill: '#2563eb' },
-          { x: 150, y: 34, fill: '#f8fafc' },
-          { x: 240, y: 42, fill: '#dc2626' },
-          { x: 330, y: 48, fill: '#16a34a' },
-          { x: 420, y: 52, fill: '#eab308' },
-          { x: 510, y: 53, fill: '#2563eb' },
-          { x: 600, y: 51, fill: '#f8fafc' },
-          { x: 690, y: 47, fill: '#dc2626' },
-          { x: 780, y: 41, fill: '#16a34a' },
-          { x: 870, y: 33, fill: '#eab308' },
-          { x: 960, y: 25, fill: '#2563eb' }
+          { x: 120, y: 32, fill: '#2563eb' },
+          { x: 200, y: 38, fill: '#f8fafc' },
+          { x: 280, y: 44, fill: '#dc2626' },
+          { x: 360, y: 46, fill: '#16a34a' },
+          { x: 440, y: 44, fill: '#eab308' },
+          { x: 520, y: 38, fill: '#2563eb' },
+          { x: 600, y: 32, fill: '#f8fafc' },
+          { x: 680, y: 26, fill: '#dc2626' },
+          { x: 760, y: 24, fill: '#16a34a' },
+          { x: 840, y: 23, fill: '#eab308' },
+          { x: 920, y: 22, fill: '#2563eb' },
+          { x: 1000, y: 23, fill: '#f8fafc' },
+          { x: 1080, y: 26, fill: '#dc2626' },
+          { x: 1160, y: 32, fill: '#16a34a' },
+          { x: 1240, y: 38, fill: '#eab308' },
+          { x: 1320, y: 44, fill: '#2563eb' },
+          { x: 1400, y: 46, fill: '#f8fafc' },
+          { x: 1480, y: 44, fill: '#dc2626' },
+          { x: 1560, y: 38, fill: '#16a34a' },
+          { x: 1640, y: 32, fill: '#eab308' },
+          { x: 1720, y: 26, fill: '#2563eb' },
+          { x: 1800, y: 22, fill: '#f8fafc' }
         ].map((flag, i) => (
           <polygon
             key={i}
-            points={`${flag.x},${flag.y} ${flag.x + 42},${flag.y + 2} ${flag.x + 38},${flag.y + 48} ${flag.x - 4},${flag.y + 46}`}
+            points={`${flag.x},${flag.y} ${flag.x + 38},${flag.y + 2} ${flag.x + 34},${flag.y + 44} ${flag.x - 4},${flag.y + 42}`}
             fill={flag.fill}
             stroke="rgba(0,0,0,0.15)"
             strokeWidth="1"
@@ -142,9 +153,9 @@ export const HimalayanBackground = ({ themeGradient }) => {
         ))}
       </svg>
 
-      {/* Midground Lush Green Hills */}
+      {/* Midground Lush Green Hills (Spanning Edge-to-Edge) */}
       <svg
-        viewBox="0 0 1080 500"
+        viewBox="0 0 1920 400"
         preserveAspectRatio="none"
         style={{
           position: 'absolute',
@@ -152,15 +163,14 @@ export const HimalayanBackground = ({ themeGradient }) => {
           left: 0,
           right: 0,
           width: '100%',
-          height: '620px',
+          height: '420px',
           display: 'block'
         }}
       >
-        <path d="M 0,240 Q 300,60 600,180 T 1080,120 L 1080,500 L 0,500 Z" fill="#22c55e" opacity="0.45" />
-        <path d="M 0,300 Q 250,140 550,250 T 1080,180 L 1080,500 L 0,500 Z" fill="#16a34a" opacity="0.8" />
-        <path d="M 0,370 Q 350,220 750,320 T 1080,260 L 1080,500 L 0,500 Z" fill="#15803d" />
+        <path d="M 0,220 Q 400,30 800,150 T 1600,90 Q 1800,120 1920,170 L 1920,400 L 0,400 Z" fill="#22c55e" opacity="0.45" />
+        <path d="M 0,270 Q 300,90 700,210 T 1500,130 Q 1750,150 1920,230 L 1920,400 L 0,400 Z" fill="#16a34a" opacity="0.8" />
+        <path d="M 0,320 Q 450,180 950,270 T 1700,200 Q 1820,220 1920,290 L 1920,400 L 0,400 Z" fill="#15803d" />
       </svg>
     </div>
   );
 };
-

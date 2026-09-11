@@ -291,43 +291,6 @@ class AudioManager {
     }
   }
 
-  playVictory() {
-    this.playFanfare();
-  }
-
-  playGameOver() {
-    const vol = this.getEffectiveSfxVolume();
-    if (vol <= 0) return;
-    this.initContext();
-    if (!this.ctx) return;
-
-    try {
-      const notes = [
-        { f: 392.00, d: 0.18, t: 0 },    // G4
-        { f: 349.23, d: 0.18, t: 0.18 }, // F4
-        { f: 311.13, d: 0.22, t: 0.36 }, // Eb4
-        { f: 261.63, d: 0.45, t: 0.58 }  // C4
-      ];
-      notes.forEach(({ f, d, t }) => {
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(f, this.ctx.currentTime + t);
-
-        gain.gain.setValueAtTime(0.001, this.ctx.currentTime + t);
-        gain.gain.linearRampToValueAtTime(0.22 * vol, this.ctx.currentTime + t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + t + d);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(this.ctx.currentTime + t);
-        osc.stop(this.ctx.currentTime + t + d);
-      });
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-
   speakWord(word) {
     if (this.sfxMuted || this.speechMuted || this.getEffectiveSfxVolume() <= 0 || !window.speechSynthesis) return;
     try {

@@ -21,7 +21,7 @@ export const PauseModal = ({
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 10000,
+        zIndex: 150,
         animation: 'popIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}
     >
