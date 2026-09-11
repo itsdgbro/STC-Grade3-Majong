@@ -7,9 +7,10 @@ import { audio } from '../utils/audio';
  */
 export const MainMenu = ({
   headerBadge = "SAVE THE CHILDREN • GRADE 3 ENGLISH",
-  title = "Himalayan Word Mahjong",
-  subtitle = "हिमाली शब्द माजोङ",
-  onPlay
+  title = "Word Crossword Quest",
+  subtitle = "क्रसवर्ड शब्द खोज",
+  onPlay,
+  onSettings
 }) => {
   return (
     <div
@@ -25,6 +26,39 @@ export const MainMenu = ({
         padding: '40px'
       }}
     >
+      {/* Top-Left Slot 0: Settings Button (Center 100, 100) as per UI Rule Skill */}
+      {onSettings && (
+        <button
+          onClick={() => {
+            audio.playSelect();
+            onSettings();
+          }}
+          title="Settings"
+          style={{
+            position: 'absolute',
+            left: '60px',
+            top: '36px',
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            border: '4px solid rgba(255, 255, 255, 0.35)',
+            color: '#ffffff',
+            fontSize: '34px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 120, // Layer 1: UI_BUTTONS
+            transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+        >
+          ⚙️
+        </button>
+      )}
       {/* Center Container */}
       <div
         style={{

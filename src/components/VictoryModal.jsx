@@ -10,6 +10,8 @@ export const VictoryModal = ({
   timeBonus = 0,
   baseScore,
   stars = 3,
+  heartsRemaining = 5,
+  maxHearts = 5,
   timeTaken,
   levelTitle = 'Word Mahjong',
   onReplay,
@@ -42,7 +44,7 @@ export const VictoryModal = ({
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 100,
+        zIndex: 10000,
         animation: 'popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)'
       }}
     >
@@ -179,8 +181,12 @@ export const VictoryModal = ({
             </div>
           </div>
           <div>
-            <div style={{ fontSize: '18px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>TOTAL TIME</div>
-            <div style={{ fontSize: '40px', color: '#059669', fontWeight: '900', lineHeight: '1.1' }}>{formatTime(timeTaken)}</div>
+            <div style={{ fontSize: '18px', color: '#64748b', fontWeight: '800', letterSpacing: '0.5px' }}>
+              {timeTaken !== undefined ? 'TOTAL TIME' : 'HEARTS SAVED'}
+            </div>
+            <div style={{ fontSize: '40px', color: timeTaken !== undefined ? '#059669' : '#ef4444', fontWeight: '900', lineHeight: '1.1' }}>
+              {timeTaken !== undefined ? formatTime(timeTaken) : `❤️ ${heartsRemaining}/${maxHearts}`}
+            </div>
             <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '700', marginTop: '4px' }}>
               {stars === 3 ? '🌟 3-Star Mastery!' : stars === 2 ? '⭐ 2-Star Great Job!' : '👍 Good Effort!'}
             </div>
