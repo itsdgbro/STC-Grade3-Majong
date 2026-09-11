@@ -16,28 +16,40 @@ export async function loadGameLevels() {
     return window.__GAME_DATA__;
   }
 
-  // 2. Read the centralized data.json file first
   const baseUrl = import.meta.env.BASE_URL || './';
   let targetFileName = null;
 
-  try {
-    const configPath = `${baseUrl}data/data.json`;
-    const dataRes = await fetch(configPath);
-
-    const isHtmlResponse = dataRes.headers.get('content-type')?.includes('text/html');
-    if (!dataRes.ok || isHtmlResponse) {
-      throw new Error(`Failed to fetch data.json (Status: ${dataRes.status})`);
+  // 2. Check if URL query parameter specifies the dataset (e.g. ?data=filename.json)
+  if (typeof window !== 'undefined' && window.location && window.location.search) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryFile = urlParams.get('data') || urlParams.get('dataset');
+    if (queryFile && queryFile.trim()) {
+      targetFileName = queryFile.trim();
+      console.log(`[DataLoader] URL query parameter specified dataset: "${targetFileName}"`);
     }
+  }
 
-    const config = await dataRes.json();
-    if (!config || typeof config.data !== 'string' || !config.data.trim()) {
-      throw new Error('Field "data" missing or invalid in data.json');
+  // 3. Fallback: If no URL parameter was provided, read the centralized data.json file
+  if (!targetFileName) {
+    try {
+      const configPath = `${baseUrl}data/data.json`;
+      const dataRes = await fetch(configPath);
+
+      const isHtmlResponse = dataRes.headers.get('content-type')?.includes('text/html');
+      if (!dataRes.ok || isHtmlResponse) {
+        throw new Error(`Failed to fetch data.json (Status: ${dataRes.status})`);
+      }
+
+      const config = await dataRes.json();
+      if (!config || typeof config.data !== 'string' || !config.data.trim()) {
+        throw new Error('Field "data" missing or invalid in data.json');
+      }
+
+      targetFileName = config.data.trim();
+    } catch (err) {
+      console.error('[DataLoader] Centralized data.json could not be loaded:', err);
+      throw new Error('Failed to fetch json file.');
     }
-
-    targetFileName = config.data.trim();
-  } catch (err) {
-    console.error('[DataLoader] Centralized data.json could not be loaded:', err);
-    throw new Error('Failed to fetch json file.');
   }
 
   // 3. Search for the value of data in the directory and load it
