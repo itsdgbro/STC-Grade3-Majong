@@ -298,3 +298,52 @@ If any dataset fails to load (e.g. wrong filename passed in URL, missing file in
 - [ ] Hook `flutterBridge.sendLevelCompleted(finalScore)` to your victory screen.
 - [ ] Handle `PAUSE`, `RESUME`, and `RESTART` via `flutterBridge.on(...)`.
 - [ ] Ensure the game can be tested standalone in browser via `http://localhost:8000/?data=my_file.json`.
+
+---
+
+## 🤖 Ready-to-Use AI Prompt for Other Game Repositories
+
+When you start working on another game repository, copy these files over:
+1. `src/utils/flutterBridge.js`
+2. `src/utils/dataLoader.js`
+3. `public/data/` (folder containing `data.json` and datasets)
+
+Then paste the following prompt to the AI:
+
+```markdown
+Please integrate the Flutter Bridge and dynamic dataset loader into this game project.
+
+I have already copied the following files into this repository:
+- `src/utils/flutterBridge.js`
+- `src/utils/dataLoader.js`
+- `public/data/` (contains `data.json` and question datasets)
+
+Please hook them into this game following these 3 requirements:
+
+1. Dynamic Data Loading:
+   - In the game's initialization (or Preloader scene), replace any hardcoded or static question import with `await loadGameLevels()` from `src/utils/dataLoader.js`.
+   - If `loadGameLevels()` fails, render a fullscreen error screen with the text "Failed to fetch json file." and a Retry button.
+
+2. Flutter Bridge Initialization:
+   - On game start, initialize the bridge:
+     ```javascript
+     import { flutterBridge } from './utils/flutterBridge';
+     flutterBridge.init({
+       gameId: 'your_game_id', // e.g. stc_grade3_spelling
+       gameTitle: 'Your Game Title'
+     });
+     ```
+   - Register listeners for Flutter commands:
+     - `flutterBridge.on('PAUSE', () => { /* pause scene, audio, timers */ });`
+     - `flutterBridge.on('RESUME', () => { /* resume scene, audio, timers */ });`
+     - `flutterBridge.on('RESTART', () => { /* restart level */ });`
+
+3. Level Completion Event:
+   - When the player completes the level / reaches the victory screen, send the final score to Flutter:
+     ```javascript
+     flutterBridge.sendLevelCompleted(finalScore);
+     ```
+
+Ensure that passing `?data=filename.json` in the URL successfully loads that specific question set.
+```
+
