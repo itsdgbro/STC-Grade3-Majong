@@ -1,4 +1,5 @@
 import { GAME_CONFIG } from '../data/gameConfig';
+import { flutterBridge } from './flutterBridge';
 
 /**
  * Loads game levels data.
@@ -7,12 +8,17 @@ import { GAME_CONFIG } from '../data/gameConfig';
  * 2. Reads the centralized `data.json` file in `data/data.json`.
  * 3. Searches for the value of "data" in data.json (e.g. "Grade-3-English.json").
  * 4. If the dataset value is found in the data directory, loads the JSON data into the game.
- * 5. If not found or any fetch fails, throws an error to display a fullscreen "Failed to fetch json file." screen.
+ * 5. Configures flutterBridge with dynamic gameId (from JSON filename) and gameTitle (from header field).
+ * 6. If not found or any fetch fails, throws an error to display a fullscreen "Failed to fetch json file." screen.
  */
 export async function loadGameLevels() {
   // 1. Check window injected data (for Flutter / container injection)
   if (typeof window !== 'undefined' && window.__GAME_DATA__ && Array.isArray(window.__GAME_DATA__) && window.__GAME_DATA__.length > 0) {
     console.log('[DataLoader] Loaded levels from window.__GAME_DATA__');
+    const firstLevel = window.__GAME_DATA__[0];
+    const gameId = firstLevel?.gameId || firstLevel?.id || 'stc_mahjong';
+    const gameTitle = firstLevel?.headerBadge || firstLevel?.header || firstLevel?.headerTitle || firstLevel?.title || 'Himalayan Mahjong';
+    flutterBridge.init({ gameId, gameTitle });
     return window.__GAME_DATA__;
   }
 
@@ -69,6 +75,14 @@ export async function loadGameLevels() {
     if (!json) {
       throw new Error(`Empty JSON response from ${cleanFileName}`);
     }
+
+    // Configure flutterBridge with dynamic gameId (JSON filename) and gameTitle (header field from JSON)
+    const gameId = targetFileName.replace(/^.*[\\/]/, '').replace(/\.json$/i, '');
+    const firstLevel = Array.isArray(json) ? json[0] : json;
+    const gameTitle = firstLevel?.headerBadge || firstLevel?.header || firstLevel?.headerTitle || firstLevel?.title || 'Himalayan Mahjong';
+
+    flutterBridge.init({ gameId, gameTitle });
+    console.log(`[DataLoader] Initialized FlutterBridge -> gameId: "${gameId}", gameTitle: "${gameTitle}"`);
 
     // Support array of levels or level object containing questions
     if (Array.isArray(json) && json.length > 0) {

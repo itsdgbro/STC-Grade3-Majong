@@ -52,6 +52,9 @@ flowchart TD
 Copy this module directly into any game project:
 
 ```javascript
+import { GAME_CONFIG } from '../data/gameConfig';
+import { flutterBridge } from './flutterBridge';
+
 /**
  * Universal Game Level Loader
  * 
@@ -69,6 +72,10 @@ export async function loadGameLevels() {
     window.__GAME_DATA__.length > 0
   ) {
     console.log('[DataLoader] Loaded levels from window.__GAME_DATA__');
+    const firstLevel = window.__GAME_DATA__[0];
+    const gameId = firstLevel?.gameId || firstLevel?.id || 'stc_mahjong';
+    const gameTitle = firstLevel?.headerBadge || firstLevel?.header || firstLevel?.headerTitle || firstLevel?.title || 'Himalayan Mahjong';
+    flutterBridge.init({ gameId, gameTitle });
     return window.__GAME_DATA__;
   }
 
@@ -126,6 +133,14 @@ export async function loadGameLevels() {
     if (!json) {
       throw new Error(`Empty JSON response from ${cleanFileName}`);
     }
+
+    // Configure flutterBridge automatically with dynamic gameId (JSON filename) and gameTitle (header field)
+    const gameId = targetFileName.replace(/^.*[\\/]/, '').replace(/\.json$/i, '');
+    const firstLevel = Array.isArray(json) ? json[0] : json;
+    const gameTitle = firstLevel?.headerBadge || firstLevel?.header || firstLevel?.headerTitle || firstLevel?.title || 'Himalayan Mahjong';
+
+    flutterBridge.init({ gameId, gameTitle });
+    console.log(`[DataLoader] Initialized FlutterBridge -> gameId: "${gameId}", gameTitle: "${gameTitle}"`);
 
     // Support either an array of levels [{ questions: [...] }] or a single object { questions: [...] }
     if (Array.isArray(json) && json.length > 0) {
@@ -242,13 +257,7 @@ import { loadGameLevels } from './utils/dataLoader';
 import { flutterBridge } from './utils/flutterBridge';
 
 async function initGame() {
-  // 1. Initialize Flutter Bridge metadata
-  flutterBridge.init({
-    gameId: 'stc_grade3_mahjong',
-    gameTitle: 'Grade 3 Mahjong'
-  });
-
-  // 2. Listen to Flutter incoming controls
+  // 1. Listen to Flutter incoming controls
   flutterBridge.on('PAUSE', () => {
     // Pause game loop / timers / sounds
   });
@@ -261,7 +270,7 @@ async function initGame() {
     // Reset round state and reload current level
   });
 
-  // 3. Load question dataset
+  // 2. Load question dataset (automatically configures flutterBridge gameId and gameTitle)
   try {
     const levels = await loadGameLevels();
     startGame(levels);
@@ -324,15 +333,8 @@ Please hook them into this game following these 3 requirements:
    - In the game's initialization (or Preloader scene), replace any hardcoded or static question import with `await loadGameLevels()` from `src/utils/dataLoader.js`.
    - If `loadGameLevels()` fails, render a fullscreen error screen with the text "Failed to fetch json file." and a Retry button.
 
-2. Flutter Bridge Initialization:
-   - On game start, initialize the bridge:
-     ```javascript
-     import { flutterBridge } from './utils/flutterBridge';
-     flutterBridge.init({
-       gameId: 'your_game_id', // e.g. stc_grade3_spelling
-       gameTitle: 'Your Game Title'
-     });
-     ```
+2. Flutter Bridge & Metadata Initialization:
+   - `loadGameLevels()` will automatically derive `gameId` from the JSON filename and `gameTitle` from the header field in the JSON file.
    - Register listeners for Flutter commands:
      - `flutterBridge.on('PAUSE', () => { /* pause scene, audio, timers */ });`
      - `flutterBridge.on('RESUME', () => { /* resume scene, audio, timers */ });`

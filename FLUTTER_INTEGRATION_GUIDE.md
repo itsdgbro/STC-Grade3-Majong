@@ -43,14 +43,16 @@ controller.runJavaScript('window.__GAME_DATA__ = $jsonContent;');
 
 ## 2. Outgoing Events (Game ➔ Flutter)
 
-The game dispatches JSON strings over the `FlutterBridge` channel upon level completion.
+The game dispatches JSON strings over the `FlutterBridge` channel upon level completion. 
+
+> 💡 **Dynamic Metadata:** The game automatically sets `gameId` from the loaded JSON filename (e.g. `grade4_math_mahjong`) and `gameTitle` from the header field in the JSON file (e.g. `SAVE THE CHILDREN • GRADE 4 MATHEMATICS`).
 
 ### Event Format Schema
 ```json
 {
   "event": "LEVEL_COMPLETED",
-  "gameId": "stc_grade3_mahjong",
-  "gameTitle": "Grade 3 Vocabulary Mahjong",
+  "gameId": "grade4_math_mahjong",
+  "gameTitle": "SAVE THE CHILDREN • GRADE 4 MATHEMATICS",
   "timeStamp": 1741421400000,
   "score": 450
 }

@@ -7,8 +7,8 @@
 
 class FlutterBridgeService {
   constructor() {
-    this.gameId = 'stc_grade3_mahjong';
-    this.gameTitle = 'Grade 3 Vocabulary Mahjong';
+    this.gameId = 'stc_mahjong';
+    this.gameTitle = 'Himalayan Mahjong';
     // Only log to console if debug=true or ?debug_bridge=true in URL
     this.debug = false;
     this.listeners = new Map(); // Command name -> Set of callbacks
@@ -21,14 +21,14 @@ class FlutterBridgeService {
   /**
    * Configure global game identity & debug options
    * @param {Object} config
-   * @param {string} config.gameId
-   * @param {string} config.gameTitle
+   * @param {string} [config.gameId]
+   * @param {string} [config.gameTitle]
    * @param {boolean} [config.debug]
    */
-  init({ gameId, gameTitle, debug = false } = {}) {
+  init({ gameId, gameTitle, debug } = {}) {
     if (gameId) this.gameId = gameId;
     if (gameTitle) this.gameTitle = gameTitle;
-    this.debug = Boolean(debug);
+    if (typeof debug !== 'undefined') this.debug = Boolean(debug);
 
     this.log(`[FlutterBridge] Initialized for game: "${this.gameTitle}" (${this.gameId})`);
   }

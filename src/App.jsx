@@ -111,6 +111,11 @@ export default function App() {
         console.log('[App] Custom levels dynamically set via window.loadGameData');
         setLevels(customLevels);
         setDataFetchError(null);
+
+        const firstLevel = customLevels[0];
+        const gameId = firstLevel?.gameId || firstLevel?.id || flutterBridge.gameId;
+        const gameTitle = firstLevel?.headerBadge || firstLevel?.header || firstLevel?.headerTitle || firstLevel?.title || flutterBridge.gameTitle;
+        flutterBridge.init({ gameId: String(gameId), gameTitle: String(gameTitle) });
       }
     };
 
