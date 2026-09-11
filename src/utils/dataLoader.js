@@ -1,61 +1,75 @@
-import { LEVELS as FALLBACK_LEVELS } from '../data/gameData';
 import { GAME_CONFIG } from '../data/gameConfig';
 
 /**
  * Loads game levels data.
- * Checks priority:
- * 1. window.__GAME_DATA__ (Injected by Flutter / WebView / Host container)
- * 2. URL query param `?data=path/to/custom.json` or `?dataset=filename.json`
- * 3. Local build folder JSON configured in GAME_CONFIG.DATA_FILE (or `data/levels.json`)
- * 4. Bundled fallback JS data (guarantees zero crash even offline)
+ * Flow:
+ * 1. Window injected data (__GAME_DATA__) if available.
+ * 2. Reads the centralized `data.json` file in `data/data.json`.
+ * 3. Searches for the value of "data" in data.json (e.g. "Grade-3-English.json").
+ * 4. If the dataset value is found in the data directory, loads the JSON data into the game.
+ * 5. If not found or any fetch fails, throws an error to display a fullscreen "Failed to fetch json file." screen.
  */
 export async function loadGameLevels() {
-  // 1. Check window injected data
-  if (typeof window !== 'undefined' && window.__GAME_DATA__ && Array.isArray(window.__GAME_DATA__)) {
+  // 1. Check window injected data (for Flutter / container injection)
+  if (typeof window !== 'undefined' && window.__GAME_DATA__ && Array.isArray(window.__GAME_DATA__) && window.__GAME_DATA__.length > 0) {
     console.log('[DataLoader] Loaded levels from window.__GAME_DATA__');
     return window.__GAME_DATA__;
   }
 
-  // 2. Check URL search params
-  if (typeof window !== 'undefined' && window.location) {
-    const params = new URLSearchParams(window.location.search);
-    const customUrl = params.get('data') || (params.get('dataset') ? `data/${params.get('dataset')}` : null);
+  // 2. Read the centralized data.json file first
+  const baseUrl = import.meta.env.BASE_URL || './';
+  let targetFileName = null;
 
-    if (customUrl) {
-      try {
-        console.log(`[DataLoader] Fetching levels from query param: ${customUrl}`);
-        const res = await fetch(customUrl);
-        if (res.ok) {
-          const json = await res.json();
-          if (Array.isArray(json) && json.length > 0) {
-            return json;
-          }
-        }
-      } catch (err) {
-        console.warn(`[DataLoader] Failed to load from ${customUrl}:`, err);
-      }
+  try {
+    const configPath = `${baseUrl}data/data.json`;
+    const dataRes = await fetch(configPath);
+
+    const isHtmlResponse = dataRes.headers.get('content-type')?.includes('text/html');
+    if (!dataRes.ok || isHtmlResponse) {
+      throw new Error(`Failed to fetch data.json (Status: ${dataRes.status})`);
     }
+
+    const config = await dataRes.json();
+    if (!config || typeof config.data !== 'string' || !config.data.trim()) {
+      throw new Error('Field "data" missing or invalid in data.json');
+    }
+
+    targetFileName = config.data.trim();
+  } catch (err) {
+    console.error('[DataLoader] Centralized data.json could not be loaded:', err);
+    throw new Error('Failed to fetch json file.');
   }
 
-  // 3. Check build folder data JSON (from GAME_CONFIG.DATA_FILE or levels.json)
+  // 3. Search for the value of data in the directory and load it
   try {
-    const filename = GAME_CONFIG.DATA_FILE || 'levels.json';
-    const cleanFilename = filename.startsWith('data/') ? filename : `data/${filename}`;
-    // Relative path works correctly whether hosted under root or subfolder
-    const jsonPath = (import.meta.env.BASE_URL || './') + cleanFilename;
-    const res = await fetch(jsonPath);
-    if (res.ok) {
-      const json = await res.json();
-      if (Array.isArray(json) && json.length > 0) {
-        console.log(`[DataLoader] Loaded levels from build folder ${cleanFilename}`);
-        return json;
-      }
+    const cleanFileName = targetFileName.startsWith('data/') ? targetFileName : `data/${targetFileName}`;
+    const datasetUrl = `${baseUrl}${cleanFileName}`;
+
+    console.log(`[DataLoader] Centralized data.json pointed to: ${cleanFileName}. Fetching dataset...`);
+    const datasetRes = await fetch(datasetUrl);
+
+    const isHtmlResponse = datasetRes.headers.get('content-type')?.includes('text/html');
+    if (!datasetRes.ok || isHtmlResponse) {
+      throw new Error(`Failed to fetch dataset ${cleanFileName} (Status: ${datasetRes.status})`);
+    }
+
+    const json = await datasetRes.json();
+    if (!json) {
+      throw new Error(`Empty JSON response from ${cleanFileName}`);
+    }
+
+    // Support array of levels or level object containing questions
+    if (Array.isArray(json) && json.length > 0) {
+      console.log(`[DataLoader] Successfully loaded ${json[0]?.questions?.length || 0} questions from ${cleanFileName}`);
+      return json;
+    } else if (json.questions && Array.isArray(json.questions) && json.questions.length > 0) {
+      console.log(`[DataLoader] Successfully loaded single level object from ${cleanFileName}`);
+      return [json];
+    } else {
+      throw new Error(`Dataset ${cleanFileName} does not contain valid questions`);
     }
   } catch (err) {
-    console.warn(`[DataLoader] Failed to fetch ${GAME_CONFIG.DATA_FILE}:`, err);
+    console.error(`[DataLoader] Error loading dataset "${targetFileName}":`, err);
+    throw new Error('Failed to fetch json file.');
   }
-
-  // 4. Fallback bundled data
-  console.log('[DataLoader] Using fallback bundled levels');
-  return FALLBACK_LEVELS;
 }

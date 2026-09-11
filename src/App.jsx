@@ -45,6 +45,7 @@ export default function App() {
   const [usedQuestionIds, setUsedQuestionIds] = useState(new Set());
   const [questionStats, setQuestionStats] = useState({});
   const [roundTransitionBanner, setRoundTransitionBanner] = useState(null); // e.g. "Round 2"
+  const [dataFetchError, setDataFetchError] = useState(null);
 
   // Gameplay state
   const [tiles, setTiles] = useState([]);
@@ -86,24 +87,37 @@ export default function App() {
   });
 
   // Load levels dynamically on mount and expose window.loadGameData
+  const fetchLevelData = useCallback(() => {
+    loadGameLevels()
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setLevels(data);
+          setDataFetchError(null);
+        } else {
+          throw new Error('Failed to fetch json file.');
+        }
+      })
+      .catch((err) => {
+        console.error('[App] Failed to load level data:', err);
+        setDataFetchError('Failed to fetch json file.');
+      });
+  }, []);
+
   useEffect(() => {
-    loadGameLevels().then((data) => {
-      if (Array.isArray(data) && data.length > 0) {
-        setLevels(data);
-      }
-    });
+    fetchLevelData();
 
     window.loadGameData = (customLevels) => {
       if (Array.isArray(customLevels) && customLevels.length > 0) {
         console.log('[App] Custom levels dynamically set via window.loadGameData');
         setLevels(customLevels);
+        setDataFetchError(null);
       }
     };
 
     return () => {
       delete window.loadGameData;
     };
-  }, []);
+  }, [fetchLevelData]);
 
   const level = levels[0] || DEFAULT_LEVELS[0];
 
@@ -782,6 +796,105 @@ export default function App() {
 
   return (
     <AspectRatioContainer>
+      {/* Fullscreen Data Fetch Error Modal */}
+      {dataFetchError && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 999999,
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #31102b 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '40px',
+            boxSizing: 'border-box',
+            textAlign: 'center',
+            color: '#ffffff',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '2px solid rgba(239, 68, 68, 0.4)',
+              borderRadius: '32px',
+              padding: '48px 64px',
+              maxWidth: '700px',
+              width: '90%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.6)'
+            }}
+          >
+            <div
+              style={{
+                width: '90px',
+                height: '90px',
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '3px solid #ef4444',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                fontSize: '44px',
+                boxShadow: '0 0 30px rgba(239, 68, 68, 0.3)'
+              }}
+            >
+              ⚠️
+            </div>
+
+            <div
+              style={{
+                fontSize: '42px',
+                fontWeight: '900',
+                color: '#f87171',
+                letterSpacing: '0.5px',
+                lineHeight: '1.2'
+              }}
+            >
+              Failed to fetch json file.
+            </div>
+
+            <div
+              style={{
+                fontSize: '22px',
+                color: '#cbd5e1',
+                lineHeight: '1.5',
+                maxWidth: '560px'
+              }}
+            >
+              Could not load the curriculum data from data.json. Please ensure the data file exists in the directory.
+            </div>
+
+            <button
+              onClick={fetchLevelData}
+              style={{
+                marginTop: '12px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '16px 44px',
+                borderRadius: '50px',
+                fontSize: '24px',
+                fontWeight: '900',
+                letterSpacing: '0.5px',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(239, 68, 68, 0.4)',
+                transition: 'transform 0.15s ease'
+              }}
+            >
+              🔄 Retry Fetch
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Cartoon Himalayan Background */}
       <HimalayanBackground themeGradient={level.bgGradient} />
 

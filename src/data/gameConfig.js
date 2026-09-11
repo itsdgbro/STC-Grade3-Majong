@@ -3,8 +3,9 @@
  * Adjust round progression, pair spawn counts, and session rules here.
  */
 export const GAME_CONFIG = {
-  // Select the JSON file to load game data from
-  DATA_FILE: 'Grade-3-English-final.json',
+  // Centralized data config file that specifies dataset filename
+  DATA_CONFIG_FILE: 'data.json',
+  DATA_FILE: 'Grade-3-English.json',
 
   // Total continuous rounds in the game (e.g., 3)
   TOTAL_ROUNDS: 3,
